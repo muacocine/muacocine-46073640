@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Play, Plus, Star } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Play, Plus, Star, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface Movie {
@@ -18,6 +19,11 @@ interface MovieCardProps {
 
 export default function MovieCard({ movie, index = 0 }: MovieCardProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    navigate(`/movie/${movie.id}`);
+  };
 
   return (
     <div
@@ -25,6 +31,7 @@ export default function MovieCard({ movie, index = 0 }: MovieCardProps) {
       style={{ animationDelay: `${index * 100}ms` }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onClick={handleClick}
     >
       {/* Card */}
       <div className="relative aspect-[2/3] rounded-lg overflow-hidden shadow-card transition-all duration-300 group-hover:scale-105 group-hover:shadow-gold">
@@ -69,8 +76,16 @@ export default function MovieCard({ movie, index = 0 }: MovieCardProps) {
                 <Play className="w-4 h-4 fill-primary-foreground" />
                 Assistir
               </Button>
-              <Button size="icon" variant="outline" className="h-9 w-9">
-                <Plus className="w-4 h-4" />
+              <Button 
+                size="icon" 
+                variant="outline" 
+                className="h-9 w-9"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/movie/${movie.id}`);
+                }}
+              >
+                <Info className="w-4 h-4" />
               </Button>
             </div>
           </div>
