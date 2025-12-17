@@ -122,7 +122,7 @@ export default function Auth() {
 
         <div className="flex items-center gap-3 mb-8">
           <Film className="w-10 h-10 text-primary" />
-          <h1 className="text-4xl font-display text-gradient-gold">CINEMAX</h1>
+          <h1 className="text-4xl font-display text-gradient-gold">MUACO CINE</h1>
         </div>
 
         <h2 className="text-3xl font-display text-foreground mb-2">

@@ -161,10 +161,10 @@ export default function Index() {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <span className="text-2xl font-display text-gradient-gold">CINEMAX</span>
+              <span className="text-2xl font-display text-gradient-gold">MUACO CINE</span>
             </div>
             <p className="text-muted-foreground text-sm">
-              © 2024 CineMax. Dados fornecidos por TMDB.
+              © 2024 Muaco Cine. Dados fornecidos por TMDB.
             </p>
           </div>
         </div>

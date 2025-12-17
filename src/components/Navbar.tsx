@@ -33,7 +33,7 @@ export default function Navbar() {
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2 group">
               <Film className="w-8 h-8 text-primary group-hover:scale-110 transition-transform" />
-              <span className="text-2xl font-display text-gradient-gold">CINEMAX</span>
+              <span className="text-2xl font-display text-gradient-gold">MUACO CINE</span>
             </Link>
 
             {/* Desktop Navigation */}
@@ -41,11 +41,8 @@ export default function Navbar() {
               <Link to="/" className="text-foreground/80 hover:text-foreground transition-colors font-medium">
                 Início
               </Link>
-              <Link to="/" className="text-foreground/80 hover:text-foreground transition-colors font-medium">
+              <Link to="/genre/28?name=Ação" className="text-foreground/80 hover:text-foreground transition-colors font-medium">
                 Filmes
-              </Link>
-              <Link to="/" className="text-foreground/80 hover:text-foreground transition-colors font-medium">
-                Séries
               </Link>
               {user && (
                 <Link to="/favorites" className="text-foreground/80 hover:text-foreground transition-colors font-medium">
@@ -131,11 +128,8 @@ export default function Navbar() {
                 <Link to="/" className="text-foreground/80 hover:text-foreground transition-colors font-medium">
                   Início
                 </Link>
-                <Link to="/" className="text-foreground/80 hover:text-foreground transition-colors font-medium">
+                <Link to="/genre/28?name=Ação" className="text-foreground/80 hover:text-foreground transition-colors font-medium">
                   Filmes
-                </Link>
-                <Link to="/" className="text-foreground/80 hover:text-foreground transition-colors font-medium">
-                  Séries
                 </Link>
                 {user && (
                   <Link to="/favorites" className="text-foreground/80 hover:text-foreground transition-colors font-medium">

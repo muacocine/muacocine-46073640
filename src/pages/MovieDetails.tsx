@@ -16,7 +16,8 @@ import {
   Clock, 
   Calendar,
   X,
-  Users
+  Users,
+  Film
 } from 'lucide-react';
 
 export default function MovieDetails() {
@@ -28,6 +29,7 @@ export default function MovieDetails() {
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
   const [showPlayer, setShowPlayer] = useState(false);
+  const [showTrailer, setShowTrailer] = useState(false);
   const [userRating, setUserRating] = useState<number | null>(null);
   const [averageRating, setAverageRating] = useState<number | null>(null);
   const [ratingCount, setRatingCount] = useState(0);
@@ -40,7 +42,6 @@ export default function MovieDetails() {
         const movieData = await tmdbApi.getMovieDetails(parseInt(id));
         setMovie(movieData);
 
-        // Check if favorite
         if (user) {
           const { data: fav } = await supabase
             .from('favorites')
@@ -51,7 +52,6 @@ export default function MovieDetails() {
 
           setIsFavorite(!!fav);
 
-          // Get user's rating
           const { data: rating } = await supabase
             .from('ratings')
             .select('rating')
@@ -62,7 +62,6 @@ export default function MovieDetails() {
           if (rating) setUserRating(rating.rating);
         }
 
-        // Get average rating
         const { data: ratings } = await supabase
           .from('ratings')
           .select('rating')
@@ -139,7 +138,6 @@ export default function MovieDetails() {
       setUserRating(rating);
       toast.success('Avaliação salva!');
       
-      // Refresh average
       const { data: ratings } = await supabase
         .from('ratings')
         .select('rating')
@@ -160,7 +158,6 @@ export default function MovieDetails() {
     return `${hours}h ${mins}min`;
   };
 
-  // Get YouTube trailer key
   const getTrailerKey = () => {
     if (!movie?.videos?.results) return null;
     const trailer = movie.videos.results.find(
@@ -188,11 +185,32 @@ export default function MovieDetails() {
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      {/* Video Player Modal */}
-      {showPlayer && trailerKey && (
-        <div className="fixed inset-0 z-50 bg-background/95 flex items-center justify-center p-4">
+      {/* Full Movie Player Modal */}
+      {showPlayer && (
+        <div className="fixed inset-0 z-50 bg-background flex items-center justify-center">
           <button 
             onClick={() => setShowPlayer(false)}
+            className="absolute top-6 right-6 text-foreground hover:text-primary transition-colors z-10"
+          >
+            <X className="w-8 h-8" />
+          </button>
+          <div className="w-full h-full">
+            <iframe
+              src={`https://vidsrc.xyz/embed/movie/${movie.id}`}
+              title={movie.title}
+              className="w-full h-full"
+              allowFullScreen
+              allow="autoplay; fullscreen; picture-in-picture"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Trailer Modal */}
+      {showTrailer && trailerKey && (
+        <div className="fixed inset-0 z-50 bg-background/95 flex items-center justify-center p-4">
+          <button 
+            onClick={() => setShowTrailer(false)}
             className="absolute top-6 right-6 text-foreground hover:text-primary transition-colors z-10"
           >
             <X className="w-8 h-8" />
@@ -229,7 +247,6 @@ export default function MovieDetails() {
           </button>
 
           <div className="flex flex-col md:flex-row gap-8 items-start animate-slide-up">
-            {/* Poster */}
             <div className="flex-shrink-0">
               <img 
                 src={getImageUrl(movie.poster_path, 'w500')} 
@@ -238,9 +255,7 @@ export default function MovieDetails() {
               />
             </div>
 
-            {/* Info */}
             <div className="flex-1 max-w-2xl">
-              {/* Metadata */}
               <div className="flex items-center gap-4 mb-4 flex-wrap">
                 <div className="flex items-center gap-1 bg-primary/20 text-primary px-3 py-1 rounded-full">
                   <Star className="w-4 h-4 fill-primary" />
@@ -260,12 +275,10 @@ export default function MovieDetails() {
                 )}
               </div>
 
-              {/* Title */}
               <h1 className="text-4xl md:text-6xl font-display text-foreground mb-4">
                 {movie.title.toUpperCase()}
               </h1>
 
-              {/* Genres */}
               {genres.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-4">
                   {genres.map((g) => (
@@ -279,7 +292,6 @@ export default function MovieDetails() {
                 </div>
               )}
 
-              {/* User Rating */}
               <div className="mb-6 p-4 bg-card rounded-lg">
                 <div className="flex items-center justify-between flex-wrap gap-4">
                   <div>
@@ -303,30 +315,37 @@ export default function MovieDetails() {
                 </div>
               </div>
 
-              {/* Description */}
               <p className="text-lg text-foreground/80 mb-6">
                 {movie.overview || 'Descrição não disponível.'}
               </p>
 
-              {/* Director */}
               {director && (
                 <p className="text-muted-foreground mb-6">
                   <span className="text-foreground font-medium">Diretor:</span> {director.name}
                 </p>
               )}
 
-              {/* Buttons */}
               <div className="flex flex-wrap gap-4">
                 <Button 
                   variant="hero" 
                   size="xl" 
-                  onClick={() => trailerKey ? setShowPlayer(true) : toast.info('Trailer não disponível')}
+                  onClick={() => setShowPlayer(true)}
                 >
                   <Play className="w-5 h-5 fill-primary-foreground" />
-                  {trailerKey ? 'Assistir Trailer' : 'Sem Trailer'}
+                  Assistir Filme
                 </Button>
+                {trailerKey && (
+                  <Button 
+                    variant="hero-outline" 
+                    size="xl"
+                    onClick={() => setShowTrailer(true)}
+                  >
+                    <Film className="w-5 h-5" />
+                    Ver Trailer
+                  </Button>
+                )}
                 <Button 
-                  variant={isFavorite ? "default" : "hero-outline"} 
+                  variant={isFavorite ? "default" : "outline"} 
                   size="xl"
                   onClick={toggleFavorite}
                 >
@@ -339,7 +358,6 @@ export default function MovieDetails() {
         </div>
       </section>
 
-      {/* Cast */}
       {cast.length > 0 && (
         <section className="py-12">
           <div className="container mx-auto px-4">
@@ -366,7 +384,6 @@ export default function MovieDetails() {
         </section>
       )}
 
-      {/* Similar Movies */}
       {similarMovies.length > 0 && (
         <section className="py-12">
           <div className="container mx-auto px-4">
