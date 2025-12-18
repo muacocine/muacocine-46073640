@@ -147,6 +147,22 @@ export const tmdbApi = {
     return { movies: data.results || [], totalPages: data.total_pages };
   },
 
+  async getTopRatedTV(page = 1): Promise<{ movies: TMDBMovie[]; totalPages: number }> {
+    const { data, error } = await supabase.functions.invoke('tmdb-api', {
+      body: { action: 'top_rated_tv', params: { page } }
+    });
+    if (error) throw error;
+    return { movies: data.results || [], totalPages: data.total_pages };
+  },
+
+  async getAiringToday(page = 1): Promise<{ movies: TMDBMovie[]; totalPages: number }> {
+    const { data, error } = await supabase.functions.invoke('tmdb-api', {
+      body: { action: 'airing_today', params: { page } }
+    });
+    if (error) throw error;
+    return { movies: data.results || [], totalPages: data.total_pages };
+  },
+
   async getTVDetails(tvId: number): Promise<TMDBMovie> {
     const { data, error } = await supabase.functions.invoke('tmdb-api', {
       body: { action: 'tv_details', params: { tvId } }

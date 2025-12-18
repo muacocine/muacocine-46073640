@@ -14,6 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      coin_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          id: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          media_id: string
+          media_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          media_id: string
+          media_type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          media_id?: string
+          media_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       favorites: {
         Row: {
           created_at: string
@@ -131,6 +188,78 @@ export type Database = {
           rating?: number
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_coins: {
+        Row: {
+          claimed_bonus: boolean
+          coins: number
+          created_at: string
+          followed_instagram: boolean
+          id: string
+          last_spin_date: string | null
+          spin_streak: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          claimed_bonus?: boolean
+          coins?: number
+          created_at?: string
+          followed_instagram?: boolean
+          id?: string
+          last_spin_date?: string | null
+          spin_streak?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          claimed_bonus?: boolean
+          coins?: number
+          created_at?: string
+          followed_instagram?: boolean
+          id?: string
+          last_spin_date?: string | null
+          spin_streak?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      watch_history: {
+        Row: {
+          coins_spent: number
+          completed: boolean
+          id: string
+          media_id: string
+          media_poster: string | null
+          media_title: string
+          media_type: string
+          user_id: string
+          watched_at: string
+        }
+        Insert: {
+          coins_spent?: number
+          completed?: boolean
+          id?: string
+          media_id: string
+          media_poster?: string | null
+          media_title: string
+          media_type: string
+          user_id: string
+          watched_at?: string
+        }
+        Update: {
+          coins_spent?: number
+          completed?: boolean
+          id?: string
+          media_id?: string
+          media_poster?: string | null
+          media_title?: string
+          media_type?: string
+          user_id?: string
+          watched_at?: string
         }
         Relationships: []
       }
