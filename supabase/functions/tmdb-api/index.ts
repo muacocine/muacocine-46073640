@@ -58,6 +58,16 @@ Deno.serve(async (req) => {
         url = `${TMDB_BASE_URL}/movie/top_rated?api_key=${apiKey}&language=${language}&page=${topPage}`;
         break;
 
+      case 'top_rated_tv':
+        const topTvPage = params?.page || 1;
+        url = `${TMDB_BASE_URL}/tv/top_rated?api_key=${apiKey}&language=${language}&page=${topTvPage}`;
+        break;
+
+      case 'airing_today':
+        const airingPage = params?.page || 1;
+        url = `${TMDB_BASE_URL}/tv/airing_today?api_key=${apiKey}&language=${language}&page=${airingPage}`;
+        break;
+
       case 'now_playing':
         const nowPage = params?.page || 1;
         url = `${TMDB_BASE_URL}/movie/now_playing?api_key=${apiKey}&language=${language}&page=${nowPage}`;

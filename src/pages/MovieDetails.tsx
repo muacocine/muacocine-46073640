@@ -1,12 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useCoins } from '@/hooks/useCoins';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import Navbar from '@/components/Navbar';
 import MovieCard from '@/components/MovieCard';
 import RatingStars from '@/components/RatingStars';
+import Comments from '@/components/Comments';
 import { tmdbApi, TMDBMovie, getImageUrl, getBackdropUrl, getGenreNames } from '@/lib/tmdb';
 import { 
   Play, 
@@ -18,13 +20,20 @@ import {
   X,
   Users,
   Film,
-  Subtitles
+  Subtitles,
+  Coins,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
+
+const MOVIE_COST = 3;
+const REFUND_TIME = 120000; // 2 minutes
 
 export default function MovieDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { coins, spendCoins, refundCoins, refreshCoins } = useCoins();
   
   const [movie, setMovie] = useState<TMDBMovie | null>(null);
   const [loading, setLoading] = useState(true);
@@ -35,6 +44,24 @@ export default function MovieDetails() {
   const [averageRating, setAverageRating] = useState<number | null>(null);
   const [ratingCount, setRatingCount] = useState(0);
   const [playerSource, setPlayerSource] = useState(1);
+  const [watchStartTime, setWatchStartTime] = useState<number | null>(null);
+  const [coinsPaid, setCoinsPaid] = useState(false);
+  const serverScrollRef = useRef<HTMLDivElement>(null);
+
+  // Video sources without URL shorteners
+  const getVideoSources = () => {
+    if (!movie) return [];
+    return [
+      { id: 1, name: 'Servidor 1', url: `https://vidsrc.cc/v2/embed/movie/${movie.id}` },
+      { id: 2, name: 'Servidor 2', url: `https://vidsrc.pro/embed/movie/${movie.id}` },
+      { id: 3, name: 'Servidor 3', url: `https://www.2embed.cc/embed/${movie.id}` },
+      { id: 4, name: 'Servidor 4', url: `https://multiembed.mov/?video_id=${movie.id}&tmdb=1` },
+      { id: 5, name: 'Servidor 5', url: `https://autoembed.co/movie/tmdb/${movie.id}` },
+      { id: 6, name: 'Servidor 6', url: `https://moviesapi.club/movie/${movie.id}` },
+      { id: 7, name: 'Servidor 7', url: `https://embed.su/embed/movie/${movie.id}` },
+      { id: 8, name: 'Servidor 8', url: `https://player.videasy.net/movie/${movie.id}` },
+    ];
+  };
 
   useEffect(() => {
     async function fetchMovie() {
@@ -85,6 +112,76 @@ export default function MovieDetails() {
 
     fetchMovie();
   }, [id, user, navigate]);
+
+  // Handle refund when closing player
+  useEffect(() => {
+    return () => {
+      if (watchStartTime && coinsPaid && movie) {
+        const watchedTime = Date.now() - watchStartTime;
+        if (watchedTime < REFUND_TIME) {
+          refundCoins(MOVIE_COST, `Reembolso - ${movie.title}`);
+        }
+      }
+    };
+  }, [watchStartTime, coinsPaid, movie, refundCoins]);
+
+  const handleWatchMovie = async () => {
+    if (!user) {
+      toast.error('Faça login para assistir');
+      navigate('/auth');
+      return;
+    }
+
+    if (coins < MOVIE_COST) {
+      toast.error(`Você precisa de ${MOVIE_COST} moedas para assistir. Vá ao seu perfil para ganhar mais!`);
+      navigate('/profile');
+      return;
+    }
+
+    const success = await spendCoins(MOVIE_COST, `Assistir: ${movie?.title}`);
+    if (success) {
+      setCoinsPaid(true);
+      setWatchStartTime(Date.now());
+      setShowPlayer(true);
+
+      // Save to watch history
+      if (movie) {
+        await supabase.from('watch_history').insert({
+          user_id: user.id,
+          media_id: movie.id.toString(),
+          media_type: 'movie',
+          media_title: movie.title,
+          media_poster: getImageUrl(movie.poster_path),
+          coins_spent: MOVIE_COST,
+        });
+      }
+
+      toast.success(`-${MOVIE_COST} moedas. Bom filme!`);
+    }
+  };
+
+  const handleClosePlayer = () => {
+    if (watchStartTime && coinsPaid && movie) {
+      const watchedTime = Date.now() - watchStartTime;
+      if (watchedTime < REFUND_TIME) {
+        refundCoins(MOVIE_COST, `Reembolso - ${movie.title}`);
+      }
+    }
+    setShowPlayer(false);
+    setCoinsPaid(false);
+    setWatchStartTime(null);
+    refreshCoins();
+  };
+
+  const scrollServers = (direction: 'left' | 'right') => {
+    if (serverScrollRef.current) {
+      const scrollAmount = 200;
+      serverScrollRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
 
   const toggleFavorite = async () => {
     if (!user) {
@@ -168,19 +265,8 @@ export default function MovieDetails() {
     return trailer?.key || movie.videos.results[0]?.key;
   };
 
-  const getPlayerUrl = () => {
-    if (!movie) return '';
-    // Multiple sources with Portuguese subtitles
-    const sources = [
-      `https://vidsrc.cc/v2/embed/movie/${movie.id}?sub_url=pt`,
-      `https://vidsrc.pro/embed/movie/${movie.id}`,
-      `https://www.2embed.cc/embed/${movie.id}`,
-      `https://multiembed.mov/?video_id=${movie.id}&tmdb=1`,
-    ];
-    return sources[(playerSource - 1) % sources.length];
-  };
-
   const trailerKey = getTrailerKey();
+  const videoSources = getVideoSources();
 
   if (loading || !movie) {
     return (
@@ -205,36 +291,58 @@ export default function MovieDetails() {
           <div className="flex items-center justify-between p-4 bg-card">
             <div className="flex items-center gap-4">
               <button 
-                onClick={() => setShowPlayer(false)}
+                onClick={handleClosePlayer}
                 className="text-foreground hover:text-primary transition-colors"
               >
                 <X className="w-6 h-6" />
               </button>
               <span className="font-display text-lg text-foreground">{movie.title}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Subtitles className="w-4 h-4 text-primary" />
-              <span className="text-sm text-muted-foreground">Legendas PT</span>
-              <div className="flex gap-1 ml-4">
-                {[1, 2, 3, 4].map((source) => (
-                  <button
-                    key={source}
-                    onClick={() => setPlayerSource(source)}
-                    className={`px-3 py-1 text-xs rounded ${
-                      playerSource === source 
-                        ? 'bg-primary text-primary-foreground' 
-                        : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
-                    }`}
-                  >
-                    Servidor {source}
-                  </button>
-                ))}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Subtitles className="w-4 h-4 text-primary" />
+                <span className="text-sm text-muted-foreground">Legendas PT</span>
+              </div>
+              
+              {/* Server selector with scroll */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => scrollServers('left')}
+                  className="p-1 text-muted-foreground hover:text-foreground"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <div 
+                  ref={serverScrollRef}
+                  className="flex gap-1 overflow-x-auto scrollbar-hide max-w-[400px]"
+                  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                >
+                  {videoSources.map((source) => (
+                    <button
+                      key={source.id}
+                      onClick={() => setPlayerSource(source.id)}
+                      className={`px-3 py-1 text-xs rounded whitespace-nowrap flex-shrink-0 ${
+                        playerSource === source.id 
+                          ? 'bg-primary text-primary-foreground' 
+                          : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                      }`}
+                    >
+                      {source.name}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => scrollServers('right')}
+                  className="p-1 text-muted-foreground hover:text-foreground"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
               </div>
             </div>
           </div>
           <div className="flex-1">
             <iframe
-              src={getPlayerUrl()}
+              src={videoSources.find(s => s.id === playerSource)?.url || videoSources[0].url}
               title={movie.title}
               className="w-full h-full"
               allowFullScreen
@@ -266,7 +374,7 @@ export default function MovieDetails() {
       )}
 
       {/* Hero Section */}
-      <section className="relative min-h-[80vh] w-full overflow-hidden pt-20">
+      <section className="relative min-h-[80vh] w-full overflow-hidden pt-28">
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: `url(${getBackdropUrl(movie.backdrop_path) || getImageUrl(movie.poster_path)})` }}
@@ -311,6 +419,10 @@ export default function MovieDetails() {
                     <span>{formatDuration(movie.runtime)}</span>
                   </div>
                 )}
+                <div className="flex items-center gap-1 bg-accent/20 text-accent px-3 py-1 rounded-full">
+                  <Coins className="w-4 h-4" />
+                  <span className="font-semibold">{MOVIE_COST} moedas</span>
+                </div>
               </div>
 
               <h1 className="text-4xl md:text-6xl font-display text-foreground mb-4">
@@ -367,10 +479,10 @@ export default function MovieDetails() {
                 <Button 
                   variant="hero" 
                   size="xl" 
-                  onClick={() => setShowPlayer(true)}
+                  onClick={handleWatchMovie}
                 >
                   <Play className="w-5 h-5 fill-primary-foreground" />
-                  Assistir Filme
+                  Assistir Filme ({MOVIE_COST} moedas)
                 </Button>
                 {trailerKey && (
                   <Button 
@@ -421,6 +533,13 @@ export default function MovieDetails() {
           </div>
         </section>
       )}
+
+      {/* Comments Section */}
+      <section className="py-12">
+        <div className="container mx-auto px-4">
+          <Comments mediaId={movie.id.toString()} mediaType="movie" />
+        </div>
+      </section>
 
       {similarMovies.length > 0 && (
         <section className="py-12">

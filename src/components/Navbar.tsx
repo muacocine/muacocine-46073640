@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
+import CoinDisplay from './CoinDisplay';
+import CreatorBanner from './CreatorBanner';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -9,7 +11,7 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { Film, Search, User, LogOut, Heart, Menu, X } from 'lucide-react';
+import { Film, Search, User, LogOut, Heart, Menu, X, Tv } from 'lucide-react';
 import SearchBar from './SearchBar';
 
 export default function Navbar() {
@@ -25,9 +27,10 @@ export default function Navbar() {
 
   return (
     <>
+      <CreatorBanner />
       <SearchBar isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
       
-      <nav className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-b from-background via-background/80 to-transparent">
+      <nav className="fixed top-8 left-0 right-0 z-40 bg-gradient-to-b from-background via-background/80 to-transparent">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             {/* Logo */}
@@ -43,6 +46,10 @@ export default function Navbar() {
               </Link>
               <Link to="/genre/28?name=Ação" className="text-foreground/80 hover:text-foreground transition-colors font-medium">
                 Filmes
+              </Link>
+              <Link to="/series" className="text-foreground/80 hover:text-foreground transition-colors font-medium flex items-center gap-1">
+                <Tv className="w-4 h-4" />
+                Séries
               </Link>
               {user && (
                 <Link to="/favorites" className="text-foreground/80 hover:text-foreground transition-colors font-medium">
@@ -60,6 +67,8 @@ export default function Navbar() {
                 <Search className="w-5 h-5" />
               </button>
 
+              {user && <CoinDisplay />}
+
               {user ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -68,7 +77,10 @@ export default function Navbar() {
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48 bg-card border-border">
-                    <DropdownMenuItem className="text-foreground cursor-pointer">
+                    <DropdownMenuItem 
+                      className="text-foreground cursor-pointer"
+                      onClick={() => navigate('/profile')}
+                    >
                       <User className="w-4 h-4 mr-2" />
                       Meu Perfil
                     </DropdownMenuItem>
@@ -106,6 +118,7 @@ export default function Navbar() {
 
             {/* Mobile menu button */}
             <div className="flex items-center gap-2 md:hidden">
+              {user && <CoinDisplay />}
               <button 
                 onClick={() => setSearchOpen(true)}
                 className="text-foreground p-2"
@@ -131,10 +144,19 @@ export default function Navbar() {
                 <Link to="/genre/28?name=Ação" className="text-foreground/80 hover:text-foreground transition-colors font-medium">
                   Filmes
                 </Link>
+                <Link to="/series" className="text-foreground/80 hover:text-foreground transition-colors font-medium flex items-center gap-1">
+                  <Tv className="w-4 h-4" />
+                  Séries
+                </Link>
                 {user && (
-                  <Link to="/favorites" className="text-foreground/80 hover:text-foreground transition-colors font-medium">
-                    Minha Lista
-                  </Link>
+                  <>
+                    <Link to="/favorites" className="text-foreground/80 hover:text-foreground transition-colors font-medium">
+                      Minha Lista
+                    </Link>
+                    <Link to="/profile" className="text-foreground/80 hover:text-foreground transition-colors font-medium">
+                      Meu Perfil
+                    </Link>
+                  </>
                 )}
                 <div className="pt-4 border-t border-border">
                   {user ? (

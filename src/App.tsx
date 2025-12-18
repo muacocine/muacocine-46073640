@@ -10,6 +10,8 @@ import MovieDetails from "./pages/MovieDetails";
 import TVDetails from "./pages/TVDetails";
 import Favorites from "./pages/Favorites";
 import GenrePage from "./pages/GenrePage";
+import Profile from "./pages/Profile";
+import Series from "./pages/Series";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +30,8 @@ const App = () => (
             <Route path="/tv/:id" element={<TVDetails />} />
             <Route path="/favorites" element={<Favorites />} />
             <Route path="/genre/:genreId" element={<GenrePage />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/series" element={<Series />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
