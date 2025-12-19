@@ -3,11 +3,12 @@ import Navbar from '@/components/Navbar';
 import HeroSection from '@/components/HeroSection';
 import MovieRow from '@/components/MovieRow';
 import CategorySection from '@/components/CategorySection';
+import CreatorBanner from '@/components/CreatorBanner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/useAuth';
 import { tmdbApi, TMDBMovie, getImageUrl, getBackdropUrl, getGenreNames } from '@/lib/tmdb';
 import { toast } from 'sonner';
-import { Tv } from 'lucide-react';
+import { Instagram, Heart } from 'lucide-react';
 
 export default function Index() {
   const [trending, setTrending] = useState<TMDBMovie[]>([]);
@@ -21,48 +22,93 @@ export default function Index() {
   const [comedyMovies, setComedyMovies] = useState<TMDBMovie[]>([]);
   const [horrorMovies, setHorrorMovies] = useState<TMDBMovie[]>([]);
   const [scifiMovies, setScifiMovies] = useState<TMDBMovie[]>([]);
+  const [dramaMovies, setDramaMovies] = useState<TMDBMovie[]>([]);
+  const [romanceMovies, setRomanceMovies] = useState<TMDBMovie[]>([]);
+  const [animationMovies, setAnimationMovies] = useState<TMDBMovie[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
   const fetchMovies = useCallback(async () => {
     try {
+      // Fetch multiple pages to get more movies
       const [
         trendingData,
-        popularData,
-        topRatedData,
-        nowPlayingData,
-        upcomingData,
+        popularData1,
+        popularData2,
+        popularData3,
+        popularData4,
+        popularData5,
+        topRatedData1,
+        topRatedData2,
+        topRatedData3,
+        nowPlayingData1,
+        nowPlayingData2,
+        nowPlayingData3,
+        upcomingData1,
+        upcomingData2,
         trendingTVData,
-        popularTVData,
-        actionData,
-        comedyData,
-        horrorData,
-        scifiData
+        popularTVData1,
+        popularTVData2,
+        actionData1,
+        actionData2,
+        actionData3,
+        comedyData1,
+        comedyData2,
+        horrorData1,
+        horrorData2,
+        scifiData1,
+        scifiData2,
+        dramaData1,
+        dramaData2,
+        romanceData1,
+        animationData1
       ] = await Promise.all([
         tmdbApi.getTrending(),
-        tmdbApi.getPopular(),
-        tmdbApi.getTopRated(),
-        tmdbApi.getNowPlaying(),
-        tmdbApi.getUpcoming(),
+        tmdbApi.getPopular(1),
+        tmdbApi.getPopular(2),
+        tmdbApi.getPopular(3),
+        tmdbApi.getPopular(4),
+        tmdbApi.getPopular(5),
+        tmdbApi.getTopRated(1),
+        tmdbApi.getTopRated(2),
+        tmdbApi.getTopRated(3),
+        tmdbApi.getNowPlaying(1),
+        tmdbApi.getNowPlaying(2),
+        tmdbApi.getNowPlaying(3),
+        tmdbApi.getUpcoming(1),
+        tmdbApi.getUpcoming(2),
         tmdbApi.getTrendingTV(),
-        tmdbApi.getPopularTV(),
-        tmdbApi.getByGenre(28),
-        tmdbApi.getByGenre(35),
-        tmdbApi.getByGenre(27),
-        tmdbApi.getByGenre(878),
+        tmdbApi.getPopularTV(1),
+        tmdbApi.getPopularTV(2),
+        tmdbApi.getByGenre(28, 1),
+        tmdbApi.getByGenre(28, 2),
+        tmdbApi.getByGenre(28, 3),
+        tmdbApi.getByGenre(35, 1),
+        tmdbApi.getByGenre(35, 2),
+        tmdbApi.getByGenre(27, 1),
+        tmdbApi.getByGenre(27, 2),
+        tmdbApi.getByGenre(878, 1),
+        tmdbApi.getByGenre(878, 2),
+        tmdbApi.getByGenre(18, 1),
+        tmdbApi.getByGenre(18, 2),
+        tmdbApi.getByGenre(10749, 1),
+        tmdbApi.getByGenre(16, 1),
       ]);
 
       setTrending(trendingData);
-      setPopular(popularData.movies);
-      setTopRated(topRatedData.movies);
-      setNowPlaying(nowPlayingData.movies);
-      setUpcoming(upcomingData.movies);
+      setPopular([...popularData1.movies, ...popularData2.movies, ...popularData3.movies, ...popularData4.movies, ...popularData5.movies]);
+      setTopRated([...topRatedData1.movies, ...topRatedData2.movies, ...topRatedData3.movies]);
+      setNowPlaying([...nowPlayingData1.movies, ...nowPlayingData2.movies, ...nowPlayingData3.movies]);
+      setUpcoming([...upcomingData1.movies, ...upcomingData2.movies]);
       setTrendingTV(trendingTVData);
-      setPopularTV(popularTVData.movies);
-      setActionMovies(actionData.movies);
-      setComedyMovies(comedyData.movies);
-      setHorrorMovies(horrorData.movies);
-      setScifiMovies(scifiData.movies);
+      setPopularTV([...popularTVData1.movies, ...popularTVData2.movies]);
+      setActionMovies([...actionData1.movies, ...actionData2.movies, ...actionData3.movies]);
+      setComedyMovies([...comedyData1.movies, ...comedyData2.movies]);
+      setHorrorMovies([...horrorData1.movies, ...horrorData2.movies]);
+      setScifiMovies([...scifiData1.movies, ...scifiData2.movies]);
+      setDramaMovies([...dramaData1.movies, ...dramaData2.movies]);
+      setRomanceMovies(romanceData1.movies);
+      setAnimationMovies(animationData1.movies);
     } catch (error) {
       console.error('Error fetching movies:', error);
       toast.error('Erro ao carregar conteúdo. Verifique a API key do TMDB.');
@@ -129,76 +175,111 @@ export default function Index() {
       
       {featuredMovie && <HeroSection movie={featuredMovie} />}
 
+      <CreatorBanner />
+
       <div className="-mt-20 relative z-10">
         <MovieRow 
           title="Em Alta Agora" 
-          movies={trending.slice(0, 10).map(transformMovie)} 
+          movies={trending.slice(0, 20).map(transformMovie)} 
         />
         
         <MovieRow 
           title="Populares" 
-          movies={popular.slice(0, 10).map(transformMovie)} 
+          movies={popular.slice(0, 40).map(transformMovie)} 
         />
 
         {/* TV Shows Section */}
         <MovieRow 
           title="Séries em Alta"
-          movies={trendingTV.slice(0, 10).map(transformTV)}
+          movies={trendingTV.slice(0, 20).map(transformTV)}
           isTV
         />
 
         <MovieRow 
           title="Séries Populares"
-          movies={popularTV.slice(0, 10).map(transformTV)}
+          movies={popularTV.slice(0, 40).map(transformTV)}
           isTV
         />
 
         <MovieRow 
           title="Mais Bem Avaliados" 
-          movies={topRated.slice(0, 10).map(transformMovie)} 
+          movies={topRated.slice(0, 60).map(transformMovie)} 
         />
 
         <MovieRow 
           title="Em Cartaz" 
-          movies={nowPlaying.slice(0, 10).map(transformMovie)} 
+          movies={nowPlaying.slice(0, 60).map(transformMovie)} 
         />
 
         <CategorySection />
 
         <MovieRow 
           title="Em Breve" 
-          movies={upcoming.slice(0, 10).map(transformMovie)} 
+          movies={upcoming.slice(0, 40).map(transformMovie)} 
         />
 
         <MovieRow 
           title="Ação" 
-          movies={actionMovies.slice(0, 10).map(transformMovie)} 
+          movies={actionMovies.slice(0, 60).map(transformMovie)} 
         />
 
         <MovieRow 
           title="Comédia" 
-          movies={comedyMovies.slice(0, 10).map(transformMovie)} 
+          movies={comedyMovies.slice(0, 40).map(transformMovie)} 
         />
 
         <MovieRow 
           title="Terror" 
-          movies={horrorMovies.slice(0, 10).map(transformMovie)} 
+          movies={horrorMovies.slice(0, 40).map(transformMovie)} 
         />
 
         <MovieRow 
           title="Ficção Científica" 
-          movies={scifiMovies.slice(0, 10).map(transformMovie)} 
+          movies={scifiMovies.slice(0, 40).map(transformMovie)} 
+        />
+
+        <MovieRow 
+          title="Drama" 
+          movies={dramaMovies.slice(0, 40).map(transformMovie)} 
+        />
+
+        <MovieRow 
+          title="Romance" 
+          movies={romanceMovies.slice(0, 20).map(transformMovie)} 
+        />
+
+        <MovieRow 
+          title="Animação" 
+          movies={animationMovies.slice(0, 20).map(transformMovie)} 
         />
       </div>
 
       <footer className="py-12 border-t border-border mt-12">
         <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-2">
               <span className="text-2xl font-display text-gradient-gold">MUACO CINE</span>
             </div>
-            <p className="text-muted-foreground text-sm">
-              © 2024 Muaco Cine. Dados fornecidos por TMDB.
+            
+            <div className="flex flex-col items-center gap-2">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Heart className="w-4 h-4 text-primary fill-primary" />
+                <span>Criado por <strong className="text-foreground">Isaac Muaco</strong></span>
+              </div>
+              <a 
+                href="https://www.instagram.com/isaaccunhapinto_official?igsh=MnhjZmE1MGcydnBq"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-primary hover:underline"
+              >
+                <Instagram className="w-4 h-4" />
+                Siga no Instagram
+              </a>
+            </div>
+
+            <p className="text-muted-foreground text-sm text-center md:text-right">
+              © 2024 Muaco Cine. Dados fornecidos por TMDB.<br />
+              +500 mil filmes e séries disponíveis.
             </p>
           </div>
         </div>

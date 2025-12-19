@@ -9,7 +9,7 @@ export default function CreatorBanner() {
           Criado por <strong className="text-primary">Isaac Muaco</strong>
         </span>
         <a 
-          href="https://instagram.com/isaacmuaco" 
+          href="https://www.instagram.com/isaaccunhapinto_official?igsh=MnhjZmE1MGcydnBq" 
           target="_blank" 
           rel="noopener noreferrer"
           className="flex items-center gap-1 text-primary hover:underline"
