@@ -23,10 +23,12 @@ import {
   Subtitles,
   Coins,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Download
 } from 'lucide-react';
 
 const MOVIE_COST = 3;
+const DOWNLOAD_COST = 100;
 const REFUND_TIME = 120000; // 2 minutes
 
 export default function MovieDetails() {
@@ -46,6 +48,7 @@ export default function MovieDetails() {
   const [playerSource, setPlayerSource] = useState(1);
   const [watchStartTime, setWatchStartTime] = useState<number | null>(null);
   const [coinsPaid, setCoinsPaid] = useState(false);
+  const [currentWatchId, setCurrentWatchId] = useState<string | null>(null);
   const serverScrollRef = useRef<HTMLDivElement>(null);
 
   // Video sources without URL shorteners
@@ -113,18 +116,6 @@ export default function MovieDetails() {
     fetchMovie();
   }, [id, user, navigate]);
 
-  // Handle refund when closing player
-  useEffect(() => {
-    return () => {
-      if (watchStartTime && coinsPaid && movie) {
-        const watchedTime = Date.now() - watchStartTime;
-        if (watchedTime < REFUND_TIME) {
-          refundCoins(MOVIE_COST, `Reembolso - ${movie.title}`);
-        }
-      }
-    };
-  }, [watchStartTime, coinsPaid, movie, refundCoins]);
-
   const handleWatchMovie = async () => {
     if (!user) {
       toast.error('Faça login para assistir');
@@ -138,9 +129,17 @@ export default function MovieDetails() {
       return;
     }
 
+    // Prevent double charge for same movie
+    const watchId = `movie-${movie?.id}`;
+    if (currentWatchId === watchId && coinsPaid) {
+      setShowPlayer(true);
+      return;
+    }
+
     const success = await spendCoins(MOVIE_COST, `Assistir: ${movie?.title}`);
     if (success) {
       setCoinsPaid(true);
+      setCurrentWatchId(watchId);
       setWatchStartTime(Date.now());
       setShowPlayer(true);
 
@@ -160,17 +159,38 @@ export default function MovieDetails() {
     }
   };
 
-  const handleClosePlayer = () => {
+  const handleClosePlayer = async () => {
     if (watchStartTime && coinsPaid && movie) {
       const watchedTime = Date.now() - watchStartTime;
       if (watchedTime < REFUND_TIME) {
-        refundCoins(MOVIE_COST, `Reembolso - ${movie.title}`);
+        await refundCoins(MOVIE_COST, `Reembolso - ${movie.title}`);
       }
     }
     setShowPlayer(false);
     setCoinsPaid(false);
     setWatchStartTime(null);
+    setCurrentWatchId(null);
     refreshCoins();
+  };
+
+  const handleDownload = async () => {
+    if (!user) {
+      toast.error('Faça login para baixar');
+      navigate('/auth');
+      return;
+    }
+
+    if (coins < DOWNLOAD_COST) {
+      toast.error(`Você precisa de ${DOWNLOAD_COST} moedas para baixar. Vá ao seu perfil para ganhar mais!`);
+      navigate('/profile');
+      return;
+    }
+
+    const success = await spendCoins(DOWNLOAD_COST, `Download: ${movie?.title}`);
+    if (success) {
+      toast.success('Download iniciado! Verifique seu navegador.');
+      window.open(`https://dl.vidsrc.vip/movie/${movie?.id}`, '_blank');
+    }
   };
 
   const scrollServers = (direction: 'left' | 'right') => {
@@ -347,6 +367,7 @@ export default function MovieDetails() {
               className="w-full h-full"
               allowFullScreen
               allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
+              sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
             />
           </div>
         </div>
@@ -494,6 +515,14 @@ export default function MovieDetails() {
                     Ver Trailer
                   </Button>
                 )}
+                <Button 
+                  variant="outline" 
+                  size="xl"
+                  onClick={handleDownload}
+                >
+                  <Download className="w-5 h-5" />
+                  Baixar ({DOWNLOAD_COST})
+                </Button>
                 <Button 
                   variant={isFavorite ? "default" : "outline"} 
                   size="xl"

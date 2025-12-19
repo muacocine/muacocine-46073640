@@ -1,11 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useCoins } from '@/hooks/useCoins';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import Navbar from '@/components/Navbar';
 import RatingStars from '@/components/RatingStars';
+import Comments from '@/components/Comments';
 import { tmdbApi, TMDBMovie, getImageUrl, getBackdropUrl, getGenreNames } from '@/lib/tmdb';
 import { 
   Play, 
@@ -17,7 +19,10 @@ import {
   Users,
   Tv,
   Subtitles,
-  ChevronDown
+  Coins,
+  ChevronLeft,
+  ChevronRight,
+  Download
 } from 'lucide-react';
 import {
   Select,
@@ -37,10 +42,15 @@ interface Episode {
   runtime: number;
 }
 
+const EPISODE_COST = 3;
+const DOWNLOAD_COST = 100;
+const REFUND_TIME = 120000; // 2 minutes
+
 export default function TVDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { coins, spendCoins, refundCoins, refreshCoins } = useCoins();
   
   const [show, setShow] = useState<TMDBMovie | null>(null);
   const [loading, setLoading] = useState(true);
@@ -54,6 +64,24 @@ export default function TVDetails() {
   const [selectedEpisode, setSelectedEpisode] = useState(1);
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [playerSource, setPlayerSource] = useState(1);
+  const [watchStartTime, setWatchStartTime] = useState<number | null>(null);
+  const [coinsPaid, setCoinsPaid] = useState(false);
+  const [currentWatchId, setCurrentWatchId] = useState<string | null>(null);
+  const serverScrollRef = useRef<HTMLDivElement>(null);
+
+  const getVideoSources = () => {
+    if (!show) return [];
+    return [
+      { id: 1, name: 'Servidor 1', url: `https://vidsrc.cc/v2/embed/tv/${show.id}/${selectedSeason}/${selectedEpisode}` },
+      { id: 2, name: 'Servidor 2', url: `https://vidsrc.pro/embed/tv/${show.id}/${selectedSeason}/${selectedEpisode}` },
+      { id: 3, name: 'Servidor 3', url: `https://www.2embed.cc/embedtv/${show.id}&s=${selectedSeason}&e=${selectedEpisode}` },
+      { id: 4, name: 'Servidor 4', url: `https://multiembed.mov/?video_id=${show.id}&tmdb=1&s=${selectedSeason}&e=${selectedEpisode}` },
+      { id: 5, name: 'Servidor 5', url: `https://autoembed.co/tv/tmdb/${show.id}-${selectedSeason}-${selectedEpisode}` },
+      { id: 6, name: 'Servidor 6', url: `https://moviesapi.club/tv/${show.id}-${selectedSeason}-${selectedEpisode}` },
+      { id: 7, name: 'Servidor 7', url: `https://embed.su/embed/tv/${show.id}/${selectedSeason}/${selectedEpisode}` },
+      { id: 8, name: 'Servidor 8', url: `https://player.videasy.net/tv/${show.id}/${selectedSeason}/${selectedEpisode}` },
+    ];
+  };
 
   useEffect(() => {
     async function fetchShow() {
@@ -128,6 +156,95 @@ export default function TVDetails() {
     fetchEpisodes();
   }, [id, selectedSeason]);
 
+  const handleWatchEpisode = async (episodeNumber: number) => {
+    if (!user) {
+      toast.error('Faça login para assistir');
+      navigate('/auth');
+      return;
+    }
+
+    if (coins < EPISODE_COST) {
+      toast.error(`Você precisa de ${EPISODE_COST} moedas para assistir. Vá ao seu perfil para ganhar mais!`);
+      navigate('/profile');
+      return;
+    }
+
+    // Check if already watching this episode (prevent double charge)
+    const watchId = `tv-${show?.id}-s${selectedSeason}e${episodeNumber}`;
+    if (currentWatchId === watchId && coinsPaid) {
+      setSelectedEpisode(episodeNumber);
+      setShowPlayer(true);
+      return;
+    }
+
+    const success = await spendCoins(EPISODE_COST, `Assistir: ${show?.name} T${selectedSeason}E${episodeNumber}`);
+    if (success) {
+      setCoinsPaid(true);
+      setCurrentWatchId(watchId);
+      setWatchStartTime(Date.now());
+      setSelectedEpisode(episodeNumber);
+      setShowPlayer(true);
+
+      if (show) {
+        await supabase.from('watch_history').insert({
+          user_id: user.id,
+          media_id: `tv-${show.id}`,
+          media_type: 'tv',
+          media_title: `${show.name} - T${selectedSeason}E${episodeNumber}`,
+          media_poster: getImageUrl(show.poster_path),
+          coins_spent: EPISODE_COST,
+        });
+      }
+
+      toast.success(`-${EPISODE_COST} moedas. Bom episódio!`);
+    }
+  };
+
+  const handleClosePlayer = async () => {
+    if (watchStartTime && coinsPaid && show) {
+      const watchedTime = Date.now() - watchStartTime;
+      if (watchedTime < REFUND_TIME) {
+        await refundCoins(EPISODE_COST, `Reembolso - ${show.name} T${selectedSeason}E${selectedEpisode}`);
+      }
+    }
+    setShowPlayer(false);
+    setCoinsPaid(false);
+    setWatchStartTime(null);
+    setCurrentWatchId(null);
+    refreshCoins();
+  };
+
+  const handleDownload = async () => {
+    if (!user) {
+      toast.error('Faça login para baixar');
+      navigate('/auth');
+      return;
+    }
+
+    if (coins < DOWNLOAD_COST) {
+      toast.error(`Você precisa de ${DOWNLOAD_COST} moedas para baixar. Vá ao seu perfil para ganhar mais!`);
+      navigate('/profile');
+      return;
+    }
+
+    const success = await spendCoins(DOWNLOAD_COST, `Download: ${show?.name}`);
+    if (success) {
+      toast.success('Download iniciado! Verifique seu navegador.');
+      // Open download link
+      window.open(`https://dl.vidsrc.vip/tv/${show?.id}`, '_blank');
+    }
+  };
+
+  const scrollServers = (direction: 'left' | 'right') => {
+    if (serverScrollRef.current) {
+      const scrollAmount = 200;
+      serverScrollRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
+
   const toggleFavorite = async () => {
     if (!user) {
       toast.error('Faça login para adicionar aos favoritos');
@@ -192,18 +309,8 @@ export default function TVDetails() {
     return trailer?.key || show.videos.results[0]?.key;
   };
 
-  const getPlayerUrl = () => {
-    if (!show) return '';
-    const sources = [
-      `https://vidsrc.cc/v2/embed/tv/${show.id}/${selectedSeason}/${selectedEpisode}`,
-      `https://vidsrc.pro/embed/tv/${show.id}/${selectedSeason}/${selectedEpisode}`,
-      `https://www.2embed.cc/embedtv/${show.id}&s=${selectedSeason}&e=${selectedEpisode}`,
-      `https://multiembed.mov/?video_id=${show.id}&tmdb=1&s=${selectedSeason}&e=${selectedEpisode}`,
-    ];
-    return sources[(playerSource - 1) % sources.length];
-  };
-
   const trailerKey = getTrailerKey();
+  const videoSources = getVideoSources();
 
   if (loading || !show) {
     return (
@@ -227,7 +334,7 @@ export default function TVDetails() {
           <div className="flex items-center justify-between p-4 bg-card flex-wrap gap-4">
             <div className="flex items-center gap-4">
               <button 
-                onClick={() => setShowPlayer(false)}
+                onClick={handleClosePlayer}
                 className="text-foreground hover:text-primary transition-colors"
               >
                 <X className="w-6 h-6" />
@@ -236,33 +343,56 @@ export default function TVDetails() {
                 {show.name} - T{selectedSeason} E{selectedEpisode}
               </span>
             </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <Subtitles className="w-4 h-4 text-primary" />
-              <span className="text-sm text-muted-foreground">Legendas PT</span>
-              <div className="flex gap-1 ml-4">
-                {[1, 2, 3, 4].map((source) => (
-                  <button
-                    key={source}
-                    onClick={() => setPlayerSource(source)}
-                    className={`px-3 py-1 text-xs rounded ${
-                      playerSource === source 
-                        ? 'bg-primary text-primary-foreground' 
-                        : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
-                    }`}
-                  >
-                    Servidor {source}
-                  </button>
-                ))}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Subtitles className="w-4 h-4 text-primary" />
+                <span className="text-sm text-muted-foreground">Legendas PT</span>
+              </div>
+              
+              {/* Server selector with scroll */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => scrollServers('left')}
+                  className="p-1 text-muted-foreground hover:text-foreground"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <div 
+                  ref={serverScrollRef}
+                  className="flex gap-1 overflow-x-auto scrollbar-hide max-w-[400px]"
+                  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                >
+                  {videoSources.map((source) => (
+                    <button
+                      key={source.id}
+                      onClick={() => setPlayerSource(source.id)}
+                      className={`px-3 py-1 text-xs rounded whitespace-nowrap flex-shrink-0 ${
+                        playerSource === source.id 
+                          ? 'bg-primary text-primary-foreground' 
+                          : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                      }`}
+                    >
+                      {source.name}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => scrollServers('right')}
+                  className="p-1 text-muted-foreground hover:text-foreground"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
               </div>
             </div>
           </div>
           <div className="flex-1">
             <iframe
-              src={getPlayerUrl()}
+              src={videoSources.find(s => s.id === playerSource)?.url || videoSources[0].url}
               title={show.name}
               className="w-full h-full"
               allowFullScreen
               allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
+              sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
             />
           </div>
         </div>
@@ -339,6 +469,10 @@ export default function TVDetails() {
                     {show.number_of_seasons} Temporadas
                   </span>
                 )}
+                <div className="flex items-center gap-1 bg-accent/20 text-accent px-3 py-1 rounded-full">
+                  <Coins className="w-4 h-4" />
+                  <span className="font-semibold">{EPISODE_COST} moedas/ep</span>
+                </div>
               </div>
 
               <h1 className="text-4xl md:text-5xl font-display text-foreground mb-4">
@@ -358,6 +492,29 @@ export default function TVDetails() {
                 </div>
               )}
 
+              <div className="mb-6 p-4 bg-card rounded-lg">
+                <div className="flex items-center justify-between flex-wrap gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Sua avaliação</p>
+                    <RatingStars 
+                      rating={userRating || 0} 
+                      onRate={handleRating}
+                      interactive={!!user}
+                    />
+                  </div>
+                  {averageRating && (
+                    <div className="text-right">
+                      <p className="text-sm text-muted-foreground mb-1">Avaliação dos usuários</p>
+                      <div className="flex items-center gap-2">
+                        <Star className="w-5 h-5 fill-primary text-primary" />
+                        <span className="text-xl font-bold text-foreground">{averageRating}</span>
+                        <span className="text-sm text-muted-foreground">({ratingCount} votos)</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <p className="text-lg text-foreground/80 mb-6 line-clamp-3">
                 {show.overview || 'Descrição não disponível.'}
               </p>
@@ -366,10 +523,10 @@ export default function TVDetails() {
                 <Button 
                   variant="hero" 
                   size="xl" 
-                  onClick={() => setShowPlayer(true)}
+                  onClick={() => handleWatchEpisode(selectedEpisode)}
                 >
                   <Play className="w-5 h-5 fill-primary-foreground" />
-                  Assistir
+                  Assistir ({EPISODE_COST} moedas)
                 </Button>
                 {trailerKey && (
                   <Button 
@@ -381,6 +538,14 @@ export default function TVDetails() {
                     Trailer
                   </Button>
                 )}
+                <Button 
+                  variant="outline" 
+                  size="xl"
+                  onClick={handleDownload}
+                >
+                  <Download className="w-5 h-5" />
+                  Baixar ({DOWNLOAD_COST})
+                </Button>
                 <Button 
                   variant={isFavorite ? "default" : "outline"} 
                   size="xl"
@@ -418,10 +583,7 @@ export default function TVDetails() {
             {episodes.map((episode) => (
               <button
                 key={episode.id}
-                onClick={() => {
-                  setSelectedEpisode(episode.episode_number);
-                  setShowPlayer(true);
-                }}
+                onClick={() => handleWatchEpisode(episode.episode_number)}
                 className={`flex gap-4 p-4 rounded-lg transition-colors text-left ${
                   selectedEpisode === episode.episode_number 
                     ? 'bg-primary/20 border border-primary' 
@@ -445,6 +607,10 @@ export default function TVDetails() {
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-primary font-medium">E{episode.episode_number}</span>
                     <h3 className="font-medium text-foreground">{episode.name}</h3>
+                    <span className="text-xs bg-accent/20 text-accent px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <Coins className="w-3 h-3" />
+                      {EPISODE_COST}
+                    </span>
                   </div>
                   <p className="text-sm text-muted-foreground line-clamp-2">{episode.overview}</p>
                   {episode.runtime && (
@@ -484,6 +650,13 @@ export default function TVDetails() {
           </div>
         </section>
       )}
+
+      {/* Comments Section */}
+      <section className="py-12">
+        <div className="container mx-auto px-4">
+          <Comments mediaId={`tv-${show.id}`} mediaType="tv" />
+        </div>
+      </section>
     </div>
   );
 }

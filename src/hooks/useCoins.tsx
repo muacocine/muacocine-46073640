@@ -131,7 +131,14 @@ export function useCoins() {
   const spendCoins = useCallback(async (amount: number, description: string) => {
     if (!user || !userCoins) return false;
 
-    if (userCoins.coins < amount) {
+    // Get current coins from database to prevent race conditions
+    const { data: currentData } = await supabase
+      .from('user_coins')
+      .select('coins')
+      .eq('user_id', user.id)
+      .single();
+
+    if (!currentData || currentData.coins < amount) {
       toast.error('Moedas insuficientes!');
       return false;
     }
@@ -139,7 +146,7 @@ export function useCoins() {
     const { error } = await supabase
       .from('user_coins')
       .update({
-        coins: userCoins.coins - amount,
+        coins: currentData.coins - amount,
         updated_at: new Date().toISOString(),
       })
       .eq('user_id', user.id);
@@ -152,7 +159,7 @@ export function useCoins() {
         description,
       });
 
-      setUserCoins(prev => prev ? { ...prev, coins: prev.coins - amount } : null);
+      setUserCoins(prev => prev ? { ...prev, coins: currentData.coins - amount } : null);
       return true;
     }
 
@@ -162,25 +169,38 @@ export function useCoins() {
   const refundCoins = useCallback(async (amount: number, description: string) => {
     if (!user || !userCoins) return false;
 
-    const { error } = await supabase
-      .from('user_coins')
-      .update({
-        coins: userCoins.coins + amount,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('user_id', user.id);
+    try {
+      // First check current coins to avoid race conditions
+      const { data: currentData } = await supabase
+        .from('user_coins')
+        .select('coins')
+        .eq('user_id', user.id)
+        .single();
 
-    if (!error) {
-      await supabase.from('coin_transactions').insert({
-        user_id: user.id,
-        amount,
-        type: 'refund',
-        description,
-      });
+      if (!currentData) return false;
 
-      setUserCoins(prev => prev ? { ...prev, coins: prev.coins + amount } : null);
-      toast.success(`${amount} moedas devolvidas!`);
-      return true;
+      const { error } = await supabase
+        .from('user_coins')
+        .update({
+          coins: currentData.coins + amount,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', user.id);
+
+      if (!error) {
+        await supabase.from('coin_transactions').insert({
+          user_id: user.id,
+          amount,
+          type: 'refund',
+          description,
+        });
+
+        setUserCoins(prev => prev ? { ...prev, coins: currentData.coins + amount } : null);
+        toast.success(`${amount} moedas devolvidas!`);
+        return true;
+      }
+    } catch (error) {
+      console.error('Refund error:', error);
     }
 
     return false;
