@@ -12,6 +12,7 @@ import Favorites from "./pages/Favorites";
 import GenrePage from "./pages/GenrePage";
 import Profile from "./pages/Profile";
 import Series from "./pages/Series";
+import Premium from "./pages/Premium";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/genre/:genreId" element={<GenrePage />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/series" element={<Series />} />
+            <Route path="/premium" element={<Premium />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
