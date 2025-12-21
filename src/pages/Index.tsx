@@ -30,85 +30,70 @@ export default function Index() {
 
   const fetchMovies = useCallback(async () => {
     try {
-      // Fetch multiple pages to get more movies
+      // Fetch many pages to get maximum content
+      const fetchPages = async (fetchFn: (page: number) => Promise<any>, pages: number[]) => {
+        const results = await Promise.all(pages.map(page => fetchFn(page)));
+        return results.flatMap(r => r.movies || r || []);
+      };
+
       const [
         trendingData,
-        popularData1,
-        popularData2,
-        popularData3,
-        popularData4,
-        popularData5,
-        topRatedData1,
-        topRatedData2,
-        topRatedData3,
-        nowPlayingData1,
-        nowPlayingData2,
-        nowPlayingData3,
-        upcomingData1,
-        upcomingData2,
+        popularMovies,
+        topRatedMovies,
+        nowPlayingMovies,
+        upcomingMovies,
         trendingTVData,
-        popularTVData1,
-        popularTVData2,
-        actionData1,
-        actionData2,
-        actionData3,
-        comedyData1,
-        comedyData2,
-        horrorData1,
-        horrorData2,
-        scifiData1,
-        scifiData2,
-        dramaData1,
-        dramaData2,
-        romanceData1,
-        animationData1
+        popularTVMovies,
+        topRatedTVMovies,
+        actionMovies,
+        comedyMoviesData,
+        horrorMoviesData,
+        scifiMoviesData,
+        dramaMoviesData,
+        romanceMoviesData,
+        animationMoviesData,
+        thrillerMoviesData,
+        adventureMoviesData,
+        fantasyMoviesData,
+        crimeMoviesData,
+        documentaryMoviesData,
       ] = await Promise.all([
         tmdbApi.getTrending(),
-        tmdbApi.getPopular(1),
-        tmdbApi.getPopular(2),
-        tmdbApi.getPopular(3),
-        tmdbApi.getPopular(4),
-        tmdbApi.getPopular(5),
-        tmdbApi.getTopRated(1),
-        tmdbApi.getTopRated(2),
-        tmdbApi.getTopRated(3),
-        tmdbApi.getNowPlaying(1),
-        tmdbApi.getNowPlaying(2),
-        tmdbApi.getNowPlaying(3),
-        tmdbApi.getUpcoming(1),
-        tmdbApi.getUpcoming(2),
+        fetchPages(tmdbApi.getPopular, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
+        fetchPages(tmdbApi.getTopRated, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
+        fetchPages(tmdbApi.getNowPlaying, [1, 2, 3, 4, 5]),
+        fetchPages(tmdbApi.getUpcoming, [1, 2, 3, 4, 5]),
         tmdbApi.getTrendingTV(),
-        tmdbApi.getPopularTV(1),
-        tmdbApi.getPopularTV(2),
-        tmdbApi.getByGenre(28, 1),
-        tmdbApi.getByGenre(28, 2),
-        tmdbApi.getByGenre(28, 3),
-        tmdbApi.getByGenre(35, 1),
-        tmdbApi.getByGenre(35, 2),
-        tmdbApi.getByGenre(27, 1),
-        tmdbApi.getByGenre(27, 2),
-        tmdbApi.getByGenre(878, 1),
-        tmdbApi.getByGenre(878, 2),
-        tmdbApi.getByGenre(18, 1),
-        tmdbApi.getByGenre(18, 2),
-        tmdbApi.getByGenre(10749, 1),
-        tmdbApi.getByGenre(16, 1),
+        fetchPages(tmdbApi.getPopularTV, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
+        fetchPages(tmdbApi.getTopRatedTV, [1, 2, 3, 4, 5]),
+        fetchPages((p) => tmdbApi.getByGenre(28, p), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
+        fetchPages((p) => tmdbApi.getByGenre(35, p), [1, 2, 3, 4, 5, 6, 7, 8]),
+        fetchPages((p) => tmdbApi.getByGenre(27, p), [1, 2, 3, 4, 5, 6, 7, 8]),
+        fetchPages((p) => tmdbApi.getByGenre(878, p), [1, 2, 3, 4, 5, 6, 7, 8]),
+        fetchPages((p) => tmdbApi.getByGenre(18, p), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
+        fetchPages((p) => tmdbApi.getByGenre(10749, p), [1, 2, 3, 4, 5, 6]),
+        fetchPages((p) => tmdbApi.getByGenre(16, p), [1, 2, 3, 4, 5, 6, 7, 8]),
+        fetchPages((p) => tmdbApi.getByGenre(53, p), [1, 2, 3, 4, 5, 6, 7, 8]),
+        fetchPages((p) => tmdbApi.getByGenre(12, p), [1, 2, 3, 4, 5, 6, 7, 8]),
+        fetchPages((p) => tmdbApi.getByGenre(14, p), [1, 2, 3, 4, 5, 6, 7, 8]),
+        fetchPages((p) => tmdbApi.getByGenre(80, p), [1, 2, 3, 4, 5, 6]),
+        fetchPages((p) => tmdbApi.getByGenre(99, p), [1, 2, 3, 4, 5]),
       ]);
 
       setTrending(trendingData);
-      setPopular([...popularData1.movies, ...popularData2.movies, ...popularData3.movies, ...popularData4.movies, ...popularData5.movies]);
-      setTopRated([...topRatedData1.movies, ...topRatedData2.movies, ...topRatedData3.movies]);
-      setNowPlaying([...nowPlayingData1.movies, ...nowPlayingData2.movies, ...nowPlayingData3.movies]);
-      setUpcoming([...upcomingData1.movies, ...upcomingData2.movies]);
+      setPopular(popularMovies);
+      setTopRated(topRatedMovies);
+      setNowPlaying(nowPlayingMovies);
+      setUpcoming(upcomingMovies);
       setTrendingTV(trendingTVData);
-      setPopularTV([...popularTVData1.movies, ...popularTVData2.movies]);
-      setActionMovies([...actionData1.movies, ...actionData2.movies, ...actionData3.movies]);
-      setComedyMovies([...comedyData1.movies, ...comedyData2.movies]);
-      setHorrorMovies([...horrorData1.movies, ...horrorData2.movies]);
-      setScifiMovies([...scifiData1.movies, ...scifiData2.movies]);
-      setDramaMovies([...dramaData1.movies, ...dramaData2.movies]);
-      setRomanceMovies(romanceData1.movies);
-      setAnimationMovies(animationData1.movies);
+      setPopularTV([...popularTVMovies, ...topRatedTVMovies]);
+      setActionMovies(actionMovies);
+      setComedyMovies(comedyMoviesData);
+      setHorrorMovies(horrorMoviesData);
+      setScifiMovies(scifiMoviesData);
+      setDramaMovies(dramaMoviesData);
+      setRomanceMovies(romanceMoviesData);
+      setAnimationMovies([...animationMoviesData, ...fantasyMoviesData]);
     } catch (error) {
       console.error('Error fetching movies:', error);
       toast.error('Erro ao carregar conteúdo. Verifique a API key do TMDB.');

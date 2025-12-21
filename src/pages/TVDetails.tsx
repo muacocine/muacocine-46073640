@@ -3,11 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useCoins } from '@/hooks/useCoins';
+import { usePremium } from '@/hooks/usePremium';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import Navbar from '@/components/Navbar';
 import RatingStars from '@/components/RatingStars';
 import Comments from '@/components/Comments';
+import DownloadModal from '@/components/DownloadModal';
 import { tmdbApi, TMDBMovie, getImageUrl, getBackdropUrl, getGenreNames } from '@/lib/tmdb';
 import { 
   Play, 
@@ -43,7 +45,6 @@ interface Episode {
 }
 
 const EPISODE_COST = 3;
-const DOWNLOAD_COST = 100;
 const REFUND_TIME = 120000; // 2 minutes
 
 export default function TVDetails() {
@@ -51,12 +52,14 @@ export default function TVDetails() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { coins, spendCoins, refundCoins, refreshCoins } = useCoins();
+  const { needsCoins } = usePremium();
   
   const [show, setShow] = useState<TMDBMovie | null>(null);
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
   const [showPlayer, setShowPlayer] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
+  const [showDownload, setShowDownload] = useState(false);
   const [userRating, setUserRating] = useState<number | null>(null);
   const [averageRating, setAverageRating] = useState<number | null>(null);
   const [ratingCount, setRatingCount] = useState(0);
@@ -214,25 +217,8 @@ export default function TVDetails() {
     refreshCoins();
   };
 
-  const handleDownload = async () => {
-    if (!user) {
-      toast.error('Faça login para baixar');
-      navigate('/auth');
-      return;
-    }
-
-    if (coins < DOWNLOAD_COST) {
-      toast.error(`Você precisa de ${DOWNLOAD_COST} moedas para baixar. Vá ao seu perfil para ganhar mais!`);
-      navigate('/profile');
-      return;
-    }
-
-    const success = await spendCoins(DOWNLOAD_COST, `Download: ${show?.name}`);
-    if (success) {
-      toast.success('Download iniciado! Verifique seu navegador.');
-      // Open download link
-      window.open(`https://dl.vidsrc.vip/tv/${show?.id}`, '_blank');
-    }
+  const handleDownload = () => {
+    setShowDownload(true);
   };
 
   const scrollServers = (direction: 'left' | 'right') => {
@@ -544,7 +530,7 @@ export default function TVDetails() {
                   onClick={handleDownload}
                 >
                   <Download className="w-5 h-5" />
-                  Baixar ({DOWNLOAD_COST})
+                  Baixar
                 </Button>
                 <Button 
                   variant={isFavorite ? "default" : "outline"} 
@@ -657,6 +643,19 @@ export default function TVDetails() {
           <Comments mediaId={`tv-${show.id}`} mediaType="tv" />
         </div>
       </section>
+
+      {/* Download Modal */}
+      {show && (
+        <DownloadModal
+          isOpen={showDownload}
+          onClose={() => setShowDownload(false)}
+          mediaId={show.id}
+          mediaType="tv"
+          mediaTitle={show.name || ''}
+          season={selectedSeason}
+          episode={selectedEpisode}
+        />
+      )}
     </div>
   );
 }
