@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { usePremium } from '@/hooks/usePremium';
 import { Button } from '@/components/ui/button';
 import CoinDisplay from './CoinDisplay';
 import CreatorBanner from './CreatorBanner';
+import InstallPWA from './InstallPWA';
+import { ThemeToggle } from './ThemeToggle';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -11,11 +14,12 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { Film, Search, User, LogOut, Heart, Menu, X, Tv } from 'lucide-react';
+import { Search, User, LogOut, Heart, Menu, X, Tv, Crown, Sparkles } from 'lucide-react';
 import SearchBar from './SearchBar';
 
 export default function Navbar() {
   const { user, signOut } = useAuth();
+  const { isPremium, currentPlan } = usePremium();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -29,14 +33,19 @@ export default function Navbar() {
     <>
       <CreatorBanner />
       <SearchBar isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
+      <InstallPWA />
       
       <nav className="fixed top-8 left-0 right-0 z-40 bg-gradient-to-b from-background via-background/80 to-transparent">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2 group">
-              <Film className="w-8 h-8 text-primary group-hover:scale-110 transition-transform" />
-              <span className="text-2xl font-display text-gradient-gold">MUACO CINE</span>
+            <Link to="/" className="flex items-center gap-3 group">
+              <img 
+                src="/logo.png" 
+                alt="Muaco Cine" 
+                className="w-10 h-10 object-contain group-hover:scale-110 transition-transform"
+              />
+              <span className="text-2xl font-display text-gradient-gold hidden sm:block">MUACO CINE</span>
             </Link>
 
             {/* Desktop Navigation */}
@@ -59,15 +68,24 @@ export default function Navbar() {
             </div>
 
             {/* Right side */}
-            <div className="hidden md:flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-3">
               <button 
                 onClick={() => setSearchOpen(true)}
-                className="text-foreground/80 hover:text-foreground transition-colors p-2"
+                className="text-foreground/80 hover:text-foreground transition-colors p-2 rounded-full hover:bg-secondary"
               >
                 <Search className="w-5 h-5" />
               </button>
 
+              <ThemeToggle />
+
               {user && <CoinDisplay />}
+
+              {isPremium && (
+                <div className="flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-primary/20 to-accent/20 rounded-full border border-primary/30">
+                  <Crown className="w-4 h-4 text-primary" />
+                  <span className="text-xs font-medium text-primary">{currentPlan.name}</span>
+                </div>
+              )}
 
               {user ? (
                 <DropdownMenu>
@@ -91,6 +109,15 @@ export default function Navbar() {
                       <Heart className="w-4 h-4 mr-2" />
                       Favoritos
                     </DropdownMenuItem>
+                    {!isPremium && (
+                      <DropdownMenuItem 
+                        className="text-primary cursor-pointer"
+                        onClick={() => navigate('/premium')}
+                      >
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        Seja Premium
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuSeparator className="bg-border" />
                     <DropdownMenuItem 
                       onClick={handleSignOut}
@@ -118,6 +145,7 @@ export default function Navbar() {
 
             {/* Mobile menu button */}
             <div className="flex items-center gap-2 md:hidden">
+              <ThemeToggle />
               {user && <CoinDisplay />}
               <button 
                 onClick={() => setSearchOpen(true)}
@@ -156,6 +184,12 @@ export default function Navbar() {
                     <Link to="/profile" className="text-foreground/80 hover:text-foreground transition-colors font-medium">
                       Meu Perfil
                     </Link>
+                    {!isPremium && (
+                      <Link to="/premium" className="text-primary hover:text-primary/80 transition-colors font-medium flex items-center gap-1">
+                        <Sparkles className="w-4 h-4" />
+                        Seja Premium
+                      </Link>
+                    )}
                   </>
                 )}
                 <div className="pt-4 border-t border-border">
