@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,6 +7,67 @@ import { useAuth } from '@/hooks/useAuth';
 import { usePremium } from '@/hooks/usePremium';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+
+// Filmes para rotação automática nos canais de filmes
+const MOVIE_PLAYLIST = [
+  'Vingadores: Ultimato',
+  'Avatar: O Caminho da Água',
+  'Homem-Aranha: Sem Volta Para Casa',
+  'Top Gun: Maverick',
+  'Jurassic World: Domínio',
+  'Doutor Estranho no Multiverso da Loucura',
+  'Batman',
+  'Pantera Negra: Wakanda Para Sempre',
+  'Thor: Amor e Trovão',
+  'Minions 2: A Origem de Gru',
+];
+
+// Hook para síntese de voz
+const useSpeechSynthesis = () => {
+  const synth = useRef<SpeechSynthesis | null>(null);
+  const voiceRef = useRef<SpeechSynthesisVoice | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      synth.current = window.speechSynthesis;
+      
+      const loadVoices = () => {
+        const voices = synth.current?.getVoices() || [];
+        // Procura voz masculina em português (Google ou Microsoft)
+        const ptMaleVoice = voices.find(v => 
+          (v.lang.includes('pt') || v.lang.includes('PT')) && 
+          (v.name.toLowerCase().includes('male') || 
+           v.name.includes('Google') || 
+           v.name.includes('Microsoft') ||
+           !v.name.toLowerCase().includes('female'))
+        ) || voices.find(v => v.lang.includes('pt')) || voices[0];
+        
+        voiceRef.current = ptMaleVoice;
+      };
+
+      loadVoices();
+      synth.current.onvoiceschanged = loadVoices;
+    }
+  }, []);
+
+  const speak = useCallback((text: string) => {
+    if (!synth.current) return;
+    
+    // Cancela qualquer fala anterior
+    synth.current.cancel();
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.voice = voiceRef.current;
+    utterance.lang = 'pt-BR';
+    utterance.rate = 0.9;
+    utterance.pitch = 0.8; // Voz mais grave (masculina)
+    utterance.volume = 1;
+    
+    synth.current.speak(utterance);
+  }, []);
+
+  return { speak };
+};
 
 interface TVChannel {
   id: string;
@@ -182,11 +243,46 @@ export default function MuacoTV() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isPremium } = usePremium();
+  const { speak } = useSpeechSynthesis();
   
   const [selectedChannel, setSelectedChannel] = useState<TVChannel | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState('Todos');
   const [selectedCategory, setSelectedCategory] = useState('Todos');
+  const [currentMovie, setCurrentMovie] = useState<string>('');
+  const [nextMovie, setNextMovie] = useState<string>('');
+  const movieIndexRef = useRef(0);
+
+  // Rotação automática de filmes nos canais de filmes
+  useEffect(() => {
+    if (!selectedChannel || selectedChannel.category !== 'Filmes') return;
+
+    // Seleciona filme inicial
+    const randomStart = Math.floor(Math.random() * MOVIE_PLAYLIST.length);
+    movieIndexRef.current = randomStart;
+    setCurrentMovie(MOVIE_PLAYLIST[randomStart]);
+    setNextMovie(MOVIE_PLAYLIST[(randomStart + 1) % MOVIE_PLAYLIST.length]);
+
+    // Simula transição de filme a cada 30 segundos (demo)
+    const interval = setInterval(() => {
+      const nextIndex = (movieIndexRef.current + 1) % MOVIE_PLAYLIST.length;
+      const upcomingMovie = MOVIE_PLAYLIST[nextIndex];
+      
+      // Anuncia o próximo filme com voz
+      if (!isMuted) {
+        speak(`Já a seguir: ${upcomingMovie}`);
+      }
+      
+      // Após 3 segundos, troca para o próximo filme
+      setTimeout(() => {
+        movieIndexRef.current = nextIndex;
+        setCurrentMovie(upcomingMovie);
+        setNextMovie(MOVIE_PLAYLIST[(nextIndex + 1) % MOVIE_PLAYLIST.length]);
+      }, 3000);
+    }, 30000); // Troca a cada 30 segundos (para demo)
+
+    return () => clearInterval(interval);
+  }, [selectedChannel, isMuted, speak]);
 
   const filteredChannels = CHANNELS.filter(channel => {
     if (selectedCountry !== 'Todos' && channel.country !== selectedCountry) return false;
@@ -267,6 +363,18 @@ export default function MuacoTV() {
                         <Radio className="w-4 h-4 animate-pulse" />
                         <span className="font-medium">AO VIVO</span>
                       </div>
+                      
+                      {/* Mostra filme atual para canais de filmes */}
+                      {selectedChannel.category === 'Filmes' && currentMovie && (
+                        <div className="mt-6 text-center">
+                          <p className="text-muted-foreground text-sm mb-1">Agora exibindo:</p>
+                          <p className="text-xl font-semibold text-foreground">{currentMovie}</p>
+                          <p className="text-primary text-sm mt-2">
+                            Próximo: {nextMovie}
+                          </p>
+                        </div>
+                      )}
+                      
                       <p className="text-muted-foreground mt-4 text-sm text-center max-w-md">
                         Streaming ativo. Os controles de reprodução estão desabilitados 
                         para manter a experiência de TV ao vivo.
