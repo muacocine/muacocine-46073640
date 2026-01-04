@@ -13,6 +13,8 @@ import GenrePage from "./pages/GenrePage";
 import Profile from "./pages/Profile";
 import Series from "./pages/Series";
 import Premium from "./pages/Premium";
+import Categories from "./pages/Categories";
+import MuacoTV from "./pages/MuacoTV";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +36,8 @@ const App = () => (
             <Route path="/profile" element={<Profile />} />
             <Route path="/series" element={<Series />} />
             <Route path="/premium" element={<Premium />} />
+            <Route path="/categories" element={<Categories />} />
+            <Route path="/muaco-tv" element={<MuacoTV />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

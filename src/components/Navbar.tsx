@@ -49,16 +49,20 @@ export default function Navbar() {
             </Link>
 
             {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center gap-8">
+            <div className="hidden md:flex items-center gap-6">
               <Link to="/" className="text-foreground/80 hover:text-foreground transition-colors font-medium">
                 Início
               </Link>
-              <Link to="/genre/28?name=Ação" className="text-foreground/80 hover:text-foreground transition-colors font-medium">
-                Filmes
+              <Link to="/categories" className="text-foreground/80 hover:text-foreground transition-colors font-medium">
+                Categorias
               </Link>
               <Link to="/series" className="text-foreground/80 hover:text-foreground transition-colors font-medium flex items-center gap-1">
                 <Tv className="w-4 h-4" />
                 Séries
+              </Link>
+              <Link to="/muaco-tv" className="text-primary hover:text-primary/80 transition-colors font-medium flex items-center gap-1">
+                <Tv className="w-4 h-4" />
+                Muaco TV
               </Link>
               {user && (
                 <Link to="/favorites" className="text-foreground/80 hover:text-foreground transition-colors font-medium">
@@ -169,12 +173,16 @@ export default function Navbar() {
                 <Link to="/" className="text-foreground/80 hover:text-foreground transition-colors font-medium">
                   Início
                 </Link>
-                <Link to="/genre/28?name=Ação" className="text-foreground/80 hover:text-foreground transition-colors font-medium">
-                  Filmes
+                <Link to="/categories" className="text-foreground/80 hover:text-foreground transition-colors font-medium">
+                  Categorias
                 </Link>
                 <Link to="/series" className="text-foreground/80 hover:text-foreground transition-colors font-medium flex items-center gap-1">
                   <Tv className="w-4 h-4" />
                   Séries
+                </Link>
+                <Link to="/muaco-tv" className="text-primary hover:text-primary/80 transition-colors font-medium flex items-center gap-1">
+                  <Tv className="w-4 h-4" />
+                  Muaco TV
                 </Link>
                 {user && (
                   <>
