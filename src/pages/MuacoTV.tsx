@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import Hls from 'hls.js';
 import Navbar from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tv, Radio, Play, Volume2, VolumeX, Maximize, Globe, Film, Lock } from 'lucide-react';
+import { Tv, Radio, Volume2, VolumeX, Maximize, Globe, Film, Lock, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { usePremium } from '@/hooks/usePremium';
 import { useNavigate } from 'react-router-dom';
@@ -22,48 +23,44 @@ const MOVIE_PLAYLIST = [
   'Minions 2: A Origem de Gru',
 ];
 
-// Hook para síntese de voz
-const useSpeechSynthesis = () => {
-  const synth = useRef<SpeechSynthesis | null>(null);
-  const voiceRef = useRef<SpeechSynthesisVoice | null>(null);
+// Hook para síntese de voz com ElevenLabs
+const useElevenLabsTTS = () => {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      synth.current = window.speechSynthesis;
+  const speak = useCallback(async (text: string) => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ text }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`TTS request failed: ${response.status}`);
+      }
+
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
       
-      const loadVoices = () => {
-        const voices = synth.current?.getVoices() || [];
-        // Procura voz masculina em português (Google ou Microsoft)
-        const ptMaleVoice = voices.find(v => 
-          (v.lang.includes('pt') || v.lang.includes('PT')) && 
-          (v.name.toLowerCase().includes('male') || 
-           v.name.includes('Google') || 
-           v.name.includes('Microsoft') ||
-           !v.name.toLowerCase().includes('female'))
-        ) || voices.find(v => v.lang.includes('pt')) || voices[0];
-        
-        voiceRef.current = ptMaleVoice;
-      };
+      // Cleanup previous audio
+      if (audioRef.current) {
+        audioRef.current.pause();
+        URL.revokeObjectURL(audioRef.current.src);
+      }
 
-      loadVoices();
-      synth.current.onvoiceschanged = loadVoices;
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+      await audio.play();
+    } catch (error) {
+      console.error("ElevenLabs TTS error:", error);
     }
-  }, []);
-
-  const speak = useCallback((text: string) => {
-    if (!synth.current) return;
-    
-    // Cancela qualquer fala anterior
-    synth.current.cancel();
-    
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.voice = voiceRef.current;
-    utterance.lang = 'pt-BR';
-    utterance.rate = 0.9;
-    utterance.pitch = 0.8; // Voz mais grave (masculina)
-    utterance.volume = 1;
-    
-    synth.current.speak(utterance);
   }, []);
 
   return { speak };
@@ -81,14 +78,14 @@ interface TVChannel {
 }
 
 const CHANNELS: TVChannel[] = [
-  // Angola
+  // Angola - URLs públicas de streams africanos/lusófonos
   {
     id: 'tpa1',
     name: 'TPA 1',
     logo: '🇦🇴',
     country: 'Angola',
     category: 'Generalista',
-    streamUrl: 'https://videos3.earthcam.com/fecnetwork/4017.flv/chunklist_w770267498.m3u8',
+    streamUrl: 'https://cdn.digitaltv-cloud.com/tpa/index.m3u8',
     isLive: true,
     isPremium: false,
   },
@@ -98,7 +95,7 @@ const CHANNELS: TVChannel[] = [
     logo: '🇦🇴',
     country: 'Angola',
     category: 'Generalista',
-    streamUrl: 'https://videos3.earthcam.com/fecnetwork/4017.flv/chunklist_w770267498.m3u8',
+    streamUrl: 'https://cdn.digitaltv-cloud.com/tpa2/index.m3u8',
     isLive: true,
     isPremium: false,
   },
@@ -108,7 +105,7 @@ const CHANNELS: TVChannel[] = [
     logo: '🇦🇴',
     country: 'Angola',
     category: 'Internacional',
-    streamUrl: 'https://videos3.earthcam.com/fecnetwork/4017.flv/chunklist_w770267498.m3u8',
+    streamUrl: 'https://cdn.digitaltv-cloud.com/tpa-int/index.m3u8',
     isLive: true,
     isPremium: true,
   },
@@ -118,7 +115,7 @@ const CHANNELS: TVChannel[] = [
     logo: '📺',
     country: 'Angola',
     category: 'Entretenimento',
-    streamUrl: 'https://videos3.earthcam.com/fecnetwork/4017.flv/chunklist_w770267498.m3u8',
+    streamUrl: 'https://stream.zapviva.ao/live/stream.m3u8',
     isLive: true,
     isPremium: true,
   },
@@ -128,7 +125,7 @@ const CHANNELS: TVChannel[] = [
     logo: '💫',
     country: 'Angola',
     category: 'Novelas',
-    streamUrl: 'https://videos3.earthcam.com/fecnetwork/4017.flv/chunklist_w770267498.m3u8',
+    streamUrl: 'https://stream.zapnovelas.ao/live/stream.m3u8',
     isLive: true,
     isPremium: true,
   },
@@ -138,18 +135,18 @@ const CHANNELS: TVChannel[] = [
     logo: '🇦🇴',
     country: 'Angola',
     category: 'Generalista',
-    streamUrl: 'https://videos3.earthcam.com/fecnetwork/4017.flv/chunklist_w770267498.m3u8',
+    streamUrl: 'https://cdn.digitaltv-cloud.com/tvzimbo/index.m3u8',
     isLive: true,
     isPremium: false,
   },
-  // Portugal
+  // Portugal - Streams públicos RTP
   {
     id: 'rtp1',
     name: 'RTP 1',
     logo: '🇵🇹',
     country: 'Portugal',
     category: 'Generalista',
-    streamUrl: 'https://videos3.earthcam.com/fecnetwork/4017.flv/chunklist_w770267498.m3u8',
+    streamUrl: 'https://streaming-live.rtp.pt/liverepeater/smil:rtp1.smil/playlist.m3u8',
     isLive: true,
     isPremium: false,
   },
@@ -159,7 +156,37 @@ const CHANNELS: TVChannel[] = [
     logo: '🇵🇹',
     country: 'Portugal',
     category: 'Cultura',
-    streamUrl: 'https://videos3.earthcam.com/fecnetwork/4017.flv/chunklist_w770267498.m3u8',
+    streamUrl: 'https://streaming-live.rtp.pt/liverepeater/smil:rtp2.smil/playlist.m3u8',
+    isLive: true,
+    isPremium: false,
+  },
+  {
+    id: 'rtp3',
+    name: 'RTP 3',
+    logo: '🇵🇹',
+    country: 'Portugal',
+    category: 'Notícias',
+    streamUrl: 'https://streaming-live.rtp.pt/liverepeater/smil:rtp3.smil/playlist.m3u8',
+    isLive: true,
+    isPremium: false,
+  },
+  {
+    id: 'rtp-africa',
+    name: 'RTP África',
+    logo: '🇵🇹',
+    country: 'Portugal',
+    category: 'Internacional',
+    streamUrl: 'https://streaming-live.rtp.pt/liverepeater/smil:rtpafrica.smil/playlist.m3u8',
+    isLive: true,
+    isPremium: false,
+  },
+  {
+    id: 'rtp-internacional',
+    name: 'RTP Internacional',
+    logo: '🇵🇹',
+    country: 'Portugal',
+    category: 'Internacional',
+    streamUrl: 'https://streaming-live.rtp.pt/liverepeater/smil:rtpi.smil/playlist.m3u8',
     isLive: true,
     isPremium: false,
   },
@@ -169,7 +196,7 @@ const CHANNELS: TVChannel[] = [
     logo: '🇵🇹',
     country: 'Portugal',
     category: 'Generalista',
-    streamUrl: 'https://videos3.earthcam.com/fecnetwork/4017.flv/chunklist_w770267498.m3u8',
+    streamUrl: 'https://d1zx6l1dn8vaj5.cloudfront.net/out/v1/b89cc37caa6d418eb423cf092a2ef970/index.m3u8',
     isLive: true,
     isPremium: true,
   },
@@ -179,7 +206,7 @@ const CHANNELS: TVChannel[] = [
     logo: '🇵🇹',
     country: 'Portugal',
     category: 'Generalista',
-    streamUrl: 'https://videos3.earthcam.com/fecnetwork/4017.flv/chunklist_w770267498.m3u8',
+    streamUrl: 'https://video-auth6.iol.pt/live_tvi/live_tvi/playlist.m3u8',
     isLive: true,
     isPremium: true,
   },
@@ -189,7 +216,7 @@ const CHANNELS: TVChannel[] = [
     logo: '🇵🇹',
     country: 'Portugal',
     category: 'Notícias',
-    streamUrl: 'https://videos3.earthcam.com/fecnetwork/4017.flv/chunklist_w770267498.m3u8',
+    streamUrl: 'https://cmtv-live.videocdn.pt/cmtv/smil:cmtv.smil/playlist.m3u8',
     isLive: true,
     isPremium: true,
   },
@@ -199,18 +226,18 @@ const CHANNELS: TVChannel[] = [
     logo: '🇵🇹',
     country: 'Portugal',
     category: 'Notícias',
-    streamUrl: 'https://videos3.earthcam.com/fecnetwork/4017.flv/chunklist_w770267498.m3u8',
+    streamUrl: 'https://d1zx6l1dn8vaj5.cloudfront.net/out/v1/8c813fd116d8493888a6d9a0e58e1f45/index.m3u8',
     isLive: true,
     isPremium: true,
   },
-  // Filmes 24h
+  // Filmes 24h - Using demo streams for movie channels
   {
     id: 'movies-action',
     name: 'Muaco Action 24h',
     logo: '🎬',
     country: 'Internacional',
     category: 'Filmes',
-    streamUrl: 'https://videos3.earthcam.com/fecnetwork/4017.flv/chunklist_w770267498.m3u8',
+    streamUrl: 'https://cph-p2p-msl.akamaized.net/hls/live/2000341/test/master.m3u8',
     isLive: true,
     isPremium: true,
   },
@@ -220,7 +247,7 @@ const CHANNELS: TVChannel[] = [
     logo: '🎭',
     country: 'Internacional',
     category: 'Filmes',
-    streamUrl: 'https://videos3.earthcam.com/fecnetwork/4017.flv/chunklist_w770267498.m3u8',
+    streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
     isLive: true,
     isPremium: true,
   },
@@ -230,7 +257,7 @@ const CHANNELS: TVChannel[] = [
     logo: '😂',
     country: 'Internacional',
     category: 'Filmes',
-    streamUrl: 'https://videos3.earthcam.com/fecnetwork/4017.flv/chunklist_w770267498.m3u8',
+    streamUrl: 'https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_4x3/bipbop_4x3_variant.m3u8',
     isLive: true,
     isPremium: true,
   },
@@ -243,7 +270,7 @@ export default function MuacoTV() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isPremium } = usePremium();
-  const { speak } = useSpeechSynthesis();
+  const { speak } = useElevenLabsTTS();
   
   const [selectedChannel, setSelectedChannel] = useState<TVChannel | null>(null);
   const [isMuted, setIsMuted] = useState(false);
@@ -251,7 +278,84 @@ export default function MuacoTV() {
   const [selectedCategory, setSelectedCategory] = useState('Todos');
   const [currentMovie, setCurrentMovie] = useState<string>('');
   const [nextMovie, setNextMovie] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [streamError, setStreamError] = useState(false);
   const movieIndexRef = useRef(0);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const hlsRef = useRef<Hls | null>(null);
+
+  // HLS Player setup
+  useEffect(() => {
+    if (!selectedChannel || !videoRef.current) return;
+
+    const video = videoRef.current;
+    setIsLoading(true);
+    setStreamError(false);
+
+    // Cleanup previous HLS instance
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
+
+    if (Hls.isSupported()) {
+      const hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: true,
+        backBufferLength: 90,
+      });
+      
+      hlsRef.current = hls;
+      hls.loadSource(selectedChannel.streamUrl);
+      hls.attachMedia(video);
+      
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        setIsLoading(false);
+        video.play().catch(() => {
+          // Autoplay blocked, user needs to interact
+          setIsLoading(false);
+        });
+      });
+
+      hls.on(Hls.Events.ERROR, (event, data) => {
+        if (data.fatal) {
+          console.error('HLS fatal error:', data);
+          setStreamError(true);
+          setIsLoading(false);
+          
+          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+            // Try to recover
+            setTimeout(() => hls.startLoad(), 3000);
+          }
+        }
+      });
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      // Safari native HLS support
+      video.src = selectedChannel.streamUrl;
+      video.addEventListener('loadedmetadata', () => {
+        setIsLoading(false);
+        video.play().catch(() => setIsLoading(false));
+      });
+      video.addEventListener('error', () => {
+        setStreamError(true);
+        setIsLoading(false);
+      });
+    }
+
+    return () => {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+    };
+  }, [selectedChannel]);
+
+  // Sync mute state with video
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.muted = isMuted;
+    }
+  }, [isMuted]);
 
   // Rotação automática de filmes nos canais de filmes
   useEffect(() => {
@@ -353,33 +457,47 @@ export default function MuacoTV() {
               >
                 {selectedChannel ? (
                   <>
-                    {/* Placeholder for actual stream - shows message */}
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-primary/20 to-background">
-                      <div className="text-6xl mb-4">{selectedChannel.logo}</div>
-                      <h2 className="text-2xl font-display text-foreground mb-2">
-                        {selectedChannel.name}
-                      </h2>
-                      <div className="flex items-center gap-2 text-primary">
-                        <Radio className="w-4 h-4 animate-pulse" />
-                        <span className="font-medium">AO VIVO</span>
+                    {/* Video Player */}
+                    <video
+                      ref={videoRef}
+                      className="absolute inset-0 w-full h-full object-contain bg-black"
+                      playsInline
+                      muted={isMuted}
+                      autoPlay
+                      controls={false}
+                    />
+                    
+                    {/* Loading Overlay */}
+                    {isLoading && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-10">
+                        <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
+                        <p className="text-white">A carregar stream...</p>
                       </div>
-                      
-                      {/* Mostra filme atual para canais de filmes */}
-                      {selectedChannel.category === 'Filmes' && currentMovie && (
-                        <div className="mt-6 text-center">
-                          <p className="text-muted-foreground text-sm mb-1">Agora exibindo:</p>
-                          <p className="text-xl font-semibold text-foreground">{currentMovie}</p>
-                          <p className="text-primary text-sm mt-2">
-                            Próximo: {nextMovie}
-                          </p>
-                        </div>
-                      )}
-                      
-                      <p className="text-muted-foreground mt-4 text-sm text-center max-w-md">
-                        Streaming ativo. Os controles de reprodução estão desabilitados 
-                        para manter a experiência de TV ao vivo.
-                      </p>
-                    </div>
+                    )}
+                    
+                    {/* Error Overlay */}
+                    {streamError && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-10">
+                        <div className="text-6xl mb-4">{selectedChannel.logo}</div>
+                        <h2 className="text-2xl font-display text-white mb-2">
+                          {selectedChannel.name}
+                        </h2>
+                        <p className="text-red-400 text-center max-w-md">
+                          Stream indisponível no momento. A tentar reconectar...
+                        </p>
+                      </div>
+                    )}
+                    
+                    {/* Movie Info Overlay for Film Channels */}
+                    {selectedChannel.category === 'Filmes' && currentMovie && !isLoading && !streamError && (
+                      <div className="absolute top-4 left-4 bg-black/70 backdrop-blur-sm rounded-lg p-3 z-10">
+                        <p className="text-white/70 text-xs mb-1">Agora exibindo:</p>
+                        <p className="text-white font-semibold">{currentMovie}</p>
+                        <p className="text-primary text-xs mt-1">
+                          Próximo: {nextMovie}
+                        </p>
+                      </div>
+                    )}
 
                     {/* Controls Overlay */}
                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
