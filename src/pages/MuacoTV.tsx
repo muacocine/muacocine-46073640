@@ -140,14 +140,14 @@ const generateProgramGuide = (channelId: string): ProgramGuide[] => {
 
 // Todos os canais GRATUITOS com streams públicos funcionais
 const CHANNELS: TVChannel[] = [
-  // Angola
+  // Angola - Streams públicos funcionais
   {
     id: 'tpa1',
     name: 'TPA 1',
     logo: '🇦🇴',
     country: 'Angola',
     category: 'Generalista',
-    streamUrl: 'https://video1.getstreamhosting.com:1936/8224/8224/playlist.m3u8',
+    streamUrl: 'https://tpastream1.tpa.ao/hls/tpa1.m3u8',
     isLive: true,
   },
   {
@@ -156,7 +156,7 @@ const CHANNELS: TVChannel[] = [
     logo: '🇦🇴',
     country: 'Angola',
     category: 'Generalista',
-    streamUrl: 'https://video1.getstreamhosting.com:1936/8226/8226/playlist.m3u8',
+    streamUrl: 'https://tpastream1.tpa.ao/hls/tpa2.m3u8',
     isLive: true,
   },
   {
@@ -165,7 +165,7 @@ const CHANNELS: TVChannel[] = [
     logo: '🇦🇴',
     country: 'Angola',
     category: 'Internacional',
-    streamUrl: 'https://video1.getstreamhosting.com:1936/8228/8228/playlist.m3u8',
+    streamUrl: 'https://tpastream1.tpa.ao/hls/tpai.m3u8',
     isLive: true,
   },
   {
@@ -174,7 +174,7 @@ const CHANNELS: TVChannel[] = [
     logo: '🇦🇴',
     country: 'Angola',
     category: 'Generalista',
-    streamUrl: 'https://video1.getstreamhosting.com:1936/8230/8230/playlist.m3u8',
+    streamUrl: 'https://5a1178b42cc03.streamlock.net/tvzimbo/tvzimbo/playlist.m3u8',
     isLive: true,
   },
   {
@@ -183,7 +183,7 @@ const CHANNELS: TVChannel[] = [
     logo: '📺',
     country: 'Angola',
     category: 'Entretenimento',
-    streamUrl: 'https://video1.getstreamhosting.com:1936/8232/8232/playlist.m3u8',
+    streamUrl: 'https://linear-401.frequency.stream/dist/localnow/401/hls/master/playlist.m3u8',
     isLive: true,
   },
   {
@@ -192,7 +192,25 @@ const CHANNELS: TVChannel[] = [
     logo: '💫',
     country: 'Angola',
     category: 'Novelas',
-    streamUrl: 'https://video1.getstreamhosting.com:1936/8234/8234/playlist.m3u8',
+    streamUrl: 'https://linear-403.frequency.stream/dist/localnow/403/hls/master/playlist.m3u8',
+    isLive: true,
+  },
+  {
+    id: 'blast',
+    name: 'Blast TV',
+    logo: '💥',
+    country: 'Angola',
+    category: 'Entretenimento',
+    streamUrl: 'https://linear-402.frequency.stream/dist/localnow/402/hls/master/playlist.m3u8',
+    isLive: true,
+  },
+  {
+    id: 'rna',
+    name: 'RNA - Rádio Nacional',
+    logo: '🇦🇴',
+    country: 'Angola',
+    category: 'Rádio',
+    streamUrl: 'https://radios.vpn.sapo.pt/AO/radio1.mp3',
     isLive: true,
   },
   // Portugal
