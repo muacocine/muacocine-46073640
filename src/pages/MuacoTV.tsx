@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Hls from 'hls.js';
 import Navbar from '@/components/Navbar';
+import BottomNav from '@/components/BottomNav';
+import TVPlayerControls from '@/components/TVPlayerControls';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Tv, Radio, Volume2, VolumeX, Maximize, Globe, Film, Loader2, Calendar, Clock } from 'lucide-react';
+import { Tv, Radio, Volume2, VolumeX, Maximize, Globe, Film, Loader2, Calendar, Clock, RotateCw, Settings } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -140,14 +142,14 @@ const generateProgramGuide = (channelId: string): ProgramGuide[] => {
 
 // Todos os canais GRATUITOS com streams públicos funcionais
 const CHANNELS: TVChannel[] = [
-  // Angola - Streams públicos funcionais
+  // Angola - Streams públicos funcionais atualizados
   {
     id: 'tpa1',
     name: 'TPA 1',
     logo: '🇦🇴',
     country: 'Angola',
     category: 'Generalista',
-    streamUrl: 'https://tpastream1.tpa.ao/hls/tpa1.m3u8',
+    streamUrl: 'https://video.tpa.ao/hls/tpa1_high/index.m3u8',
     isLive: true,
   },
   {
@@ -156,7 +158,7 @@ const CHANNELS: TVChannel[] = [
     logo: '🇦🇴',
     country: 'Angola',
     category: 'Generalista',
-    streamUrl: 'https://tpastream1.tpa.ao/hls/tpa2.m3u8',
+    streamUrl: 'https://video.tpa.ao/hls/tpa2_high/index.m3u8',
     isLive: true,
   },
   {
@@ -165,7 +167,7 @@ const CHANNELS: TVChannel[] = [
     logo: '🇦🇴',
     country: 'Angola',
     category: 'Internacional',
-    streamUrl: 'https://tpastream1.tpa.ao/hls/tpai.m3u8',
+    streamUrl: 'https://video.tpa.ao/hls/tpai_high/index.m3u8',
     isLive: true,
   },
   {
@@ -174,7 +176,7 @@ const CHANNELS: TVChannel[] = [
     logo: '🇦🇴',
     country: 'Angola',
     category: 'Generalista',
-    streamUrl: 'https://5a1178b42cc03.streamlock.net/tvzimbo/tvzimbo/playlist.m3u8',
+    streamUrl: 'https://cdn.zimbo.tv/live/smil:zimbo.smil/playlist.m3u8',
     isLive: true,
   },
   {
@@ -183,7 +185,7 @@ const CHANNELS: TVChannel[] = [
     logo: '📺',
     country: 'Angola',
     category: 'Entretenimento',
-    streamUrl: 'https://linear-401.frequency.stream/dist/localnow/401/hls/master/playlist.m3u8',
+    streamUrl: 'https://stream.ads.ottera.tv/playlist.m3u8?network_id=2706',
     isLive: true,
   },
   {
@@ -192,7 +194,7 @@ const CHANNELS: TVChannel[] = [
     logo: '💫',
     country: 'Angola',
     category: 'Novelas',
-    streamUrl: 'https://linear-403.frequency.stream/dist/localnow/403/hls/master/playlist.m3u8',
+    streamUrl: 'https://stream.ads.ottera.tv/playlist.m3u8?network_id=2708',
     isLive: true,
   },
   {
@@ -201,7 +203,7 @@ const CHANNELS: TVChannel[] = [
     logo: '💥',
     country: 'Angola',
     category: 'Entretenimento',
-    streamUrl: 'https://linear-402.frequency.stream/dist/localnow/402/hls/master/playlist.m3u8',
+    streamUrl: 'https://stream.ads.ottera.tv/playlist.m3u8?network_id=2707',
     isLive: true,
   },
   {
@@ -211,6 +213,24 @@ const CHANNELS: TVChannel[] = [
     country: 'Angola',
     category: 'Rádio',
     streamUrl: 'https://radios.vpn.sapo.pt/AO/radio1.mp3',
+    isLive: true,
+  },
+  {
+    id: 'tv-palanca',
+    name: 'TV Palanca',
+    logo: '🇦🇴',
+    country: 'Angola',
+    category: 'Entretenimento',
+    streamUrl: 'https://cdn-uw2-prod.tsv2.amagi.tv/linear/amg00200-tvpalanca-tvpalancaeng-samsung-43692/playlist.m3u8',
+    isLive: true,
+  },
+  {
+    id: 'record-angola',
+    name: 'Record TV Angola',
+    logo: '🇦🇴',
+    country: 'Angola',
+    category: 'Generalista',
+    streamUrl: 'https://record-recordangola-1-ao.samsung.wurl.tv/playlist.m3u8',
     isLive: true,
   },
   // Portugal
@@ -594,7 +614,7 @@ export default function MuacoTV() {
   });
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20 md:pb-0">
       <Navbar />
       
       <main className="pt-20">
@@ -623,83 +643,17 @@ export default function MuacoTV() {
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Player Section */}
             <div className="lg:col-span-2">
-              <div 
-                id="tv-player"
-                className="relative aspect-video bg-black rounded-2xl overflow-hidden border border-border"
-              >
-                {selectedChannel ? (
-                  <>
-                    <video
-                      ref={videoRef}
-                      className="absolute inset-0 w-full h-full object-contain bg-black"
-                      playsInline
-                      muted={isMuted}
-                      autoPlay
-                      controls={false}
-                    />
-                    
-                    {isLoading && (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-10">
-                        <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
-                        <p className="text-white">A carregar stream...</p>
-                      </div>
-                    )}
-                    
-                    {streamError && (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-10">
-                        <div className="text-6xl mb-4">{selectedChannel.logo}</div>
-                        <h2 className="text-2xl font-display text-white mb-2">
-                          {selectedChannel.name}
-                        </h2>
-                        <p className="text-red-400 text-center max-w-md">
-                          Stream indisponível no momento. A tentar reconectar...
-                        </p>
-                      </div>
-                    )}
-                    
-                    {selectedChannel.category === 'Filmes' && currentMovie && !isLoading && !streamError && (
-                      <div className="absolute top-4 left-4 bg-black/70 backdrop-blur-sm rounded-lg p-3 z-10">
-                        <p className="text-white/70 text-xs mb-1">Agora exibindo:</p>
-                        <p className="text-white font-semibold">{currentMovie}</p>
-                        <p className="text-primary text-xs mt-1">
-                          Próximo: {nextMovie}
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Controls Overlay */}
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Badge className="bg-red-500 text-white animate-pulse">
-                            <Radio className="w-3 h-3 mr-1" />
-                            AO VIVO
-                          </Badge>
-                          <span className="text-white font-medium">{selectedChannel.name}</span>
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-white hover:bg-white/20"
-                            onClick={() => setIsMuted(!isMuted)}
-                          >
-                            {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-white hover:bg-white/20"
-                            onClick={toggleFullscreen}
-                          >
-                            <Maximize className="w-5 h-5" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                ) : (
+              {selectedChannel ? (
+                <TVPlayerControls
+                  streamUrl={selectedChannel.streamUrl}
+                  channelName={selectedChannel.name}
+                  channelLogo={selectedChannel.logo}
+                  isLive={selectedChannel.isLive}
+                  onError={() => setStreamError(true)}
+                  onLoading={setIsLoading}
+                />
+              ) : (
+                <div className="relative aspect-video bg-black rounded-2xl overflow-hidden border border-border">
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <Tv className="w-20 h-20 text-muted-foreground mb-4" />
                     <h3 className="text-xl font-semibold text-foreground mb-2">
@@ -709,8 +663,19 @@ export default function MuacoTV() {
                       Escolha um canal da lista para começar a assistir
                     </p>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
+
+              {/* Movie Info for Movie Channels */}
+              {selectedChannel?.category === 'Filmes' && currentMovie && (
+                <div className="mt-4 p-4 bg-card border border-border rounded-xl">
+                  <p className="text-muted-foreground text-sm mb-1">Agora exibindo:</p>
+                  <p className="text-foreground font-semibold text-lg">{currentMovie}</p>
+                  <p className="text-primary text-sm mt-1">
+                    Próximo: {nextMovie}
+                  </p>
+                </div>
+              )}
 
               {/* Now Playing Info & Program Guide */}
               {selectedChannel && (
@@ -870,6 +835,8 @@ export default function MuacoTV() {
           </div>
         </div>
       </main>
+      
+      <BottomNav />
     </div>
   );
 }
