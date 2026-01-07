@@ -65,13 +65,29 @@ export default function TVPlayerControls({
     const isHls = streamUrl.includes('.m3u8') || streamUrl.includes('.m3u');
     const isAudio = streamUrl.endsWith('.mp3') || streamUrl.includes('.mp3?');
 
+    const PROXY_BYPASS_HOSTS = new Set([
+      // Alguns domínios falham no proxy (DNS/rota) — tocar direto no browser
+      'video.tpa.ao',
+      'live-hls-web-aje.getaj.net',
+    ]);
+
     const proxyUrl = (rawUrl: string) =>
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hls-proxy?url=${encodeURIComponent(rawUrl)}`;
 
-    // Para HLS, passamos sempre pelo proxy para evitar CORS/hotlink
-    const sourceUrl = isHls && !streamUrl.includes('/functions/v1/hls-proxy')
-      ? proxyUrl(streamUrl)
-      : streamUrl;
+    const shouldUseProxy = (() => {
+      if (!isHls) return false;
+      if (streamUrl.includes('/functions/v1/hls-proxy')) return false;
+      try {
+        const host = new URL(streamUrl).hostname;
+        if (PROXY_BYPASS_HOSTS.has(host)) return false;
+      } catch {
+        // ignore
+      }
+      return true;
+    })();
+
+    const rawUrl = streamUrl;
+    const proxiedUrl = shouldUseProxy ? proxyUrl(rawUrl) : rawUrl;
 
     setIsLoading(true);
     setHasError(false);
@@ -82,8 +98,9 @@ export default function TVPlayerControls({
       hlsRef.current = null;
     }
 
+    // Audio
     if (isAudio) {
-      video.src = sourceUrl;
+      video.src = proxiedUrl;
       video.load();
       video.play().catch(() => {});
       setIsLoading(false);
@@ -91,38 +108,62 @@ export default function TVPlayerControls({
       return;
     }
 
-    if (Hls.isSupported() && isHls) {
-      const hls = new Hls({
-        enableWorker: true,
-        lowLatencyMode: true,
-        backBufferLength: 90,
-        capLevelToPlayerSize: true,
-      });
+    let disposed = false;
+    let hasTriedDirectFallback = false;
 
-      hlsRef.current = hls;
-      hls.loadSource(sourceUrl);
-      hls.attachMedia(video);
+    const init = (urlToUse: string, canFallbackToDirect: boolean) => {
+      if (disposed) return;
 
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        setIsLoading(false);
-        onLoading?.(false);
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
 
-        const levels = hls.levels
-          .map((level, index) => ({
-            height: level.height,
-            bitrate: level.bitrate,
-            level: index,
-          }))
-          .sort((a, b) => b.height - a.height);
+      // HLS via hls.js
+      if (Hls.isSupported() && isHls) {
+        const hls = new Hls({
+          enableWorker: true,
+          lowLatencyMode: true,
+          backBufferLength: 90,
+          capLevelToPlayerSize: true,
+        });
 
-        setQualityLevels(levels);
-        video.play().catch(() => {});
-      });
+        hlsRef.current = hls;
+        hls.loadSource(urlToUse);
+        hls.attachMedia(video);
 
-      hls.on(Hls.Events.ERROR, (_, data) => {
-        console.error('[HLS]', data);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          if (disposed) return;
+          setIsLoading(false);
+          onLoading?.(false);
 
-        if (data.fatal) {
+          const levels = hls.levels
+            .map((level, index) => ({
+              height: level.height,
+              bitrate: level.bitrate,
+              level: index,
+            }))
+            .sort((a, b) => b.height - a.height);
+
+          setQualityLevels(levels);
+          video.play().catch(() => {});
+        });
+
+        hls.on(Hls.Events.ERROR, (_, data) => {
+          console.error('[HLS]', data);
+
+          if (!data.fatal) return;
+
+          // Se o proxy falhar (ex.: DNS/rota), tenta 1x tocar direto
+          if (canFallbackToDirect && !hasTriedDirectFallback) {
+            hasTriedDirectFallback = true;
+            setHasError(false);
+            setIsLoading(true);
+            onLoading?.(true);
+            init(rawUrl, false);
+            return;
+          }
+
           setHasError(true);
           setIsLoading(false);
           onLoading?.(false);
@@ -131,32 +172,42 @@ export default function TVPlayerControls({
           if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
             setTimeout(() => hls.startLoad(), 2000);
           }
-        }
-      });
-    } else {
-      // Fallback: tenta tocar diretamente (Safari com HLS nativo ou MP4)
-      video.src = sourceUrl;
+        });
+
+        return;
+      }
+
+      // Fallback: HLS nativo (Safari) ou MP4
+      video.src = urlToUse;
       const onLoaded = () => {
+        if (disposed) return;
         setIsLoading(false);
         onLoading?.(false);
         video.play().catch(() => {});
       };
       const onErr = () => {
+        if (disposed) return;
         setHasError(true);
         setIsLoading(false);
         onLoading?.(false);
         onError?.();
       };
+
       video.addEventListener('loadedmetadata', onLoaded);
       video.addEventListener('error', onErr);
 
+      // limpeza dos listeners deste init
       return () => {
         video.removeEventListener('loadedmetadata', onLoaded);
         video.removeEventListener('error', onErr);
       };
-    }
+    };
+
+    const cleanupListeners = init(proxiedUrl, shouldUseProxy);
 
     return () => {
+      disposed = true;
+      cleanupListeners?.();
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
