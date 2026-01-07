@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import Navbar from '@/components/Navbar';
+import BottomNav from '@/components/BottomNav';
 import HeroSection from '@/components/HeroSection';
 import MovieRow from '@/components/MovieRow';
 import CategorySection from '@/components/CategorySection';
@@ -155,7 +156,7 @@ export default function Index() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20 md:pb-0">
       <Navbar />
       
       {featuredMovie && <HeroSection movie={featuredMovie} />}
@@ -269,6 +270,8 @@ export default function Index() {
           </div>
         </div>
       </footer>
+
+      <BottomNav />
     </div>
   );
 }

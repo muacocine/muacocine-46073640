@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { usePremium } from '@/hooks/usePremium';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,7 @@ import { Search, User, LogOut, Heart, Menu, X, Tv, Crown, Sparkles } from 'lucid
 import SearchBar from './SearchBar';
 
 export default function Navbar() {
+  const location = useLocation();
   const { user, signOut } = useAuth();
   const { isPremium, currentPlan } = usePremium();
   const navigate = useNavigate();
@@ -35,17 +36,17 @@ export default function Navbar() {
       <SearchBar isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
       <InstallPWA />
       
-      <nav className="fixed top-8 left-0 right-0 z-40 bg-gradient-to-b from-background via-background/80 to-transparent">
-        <div className="container mx-auto px-4 py-4">
+      <nav className="fixed top-8 left-0 right-0 z-40 bg-gradient-to-b from-background via-background/95 to-transparent backdrop-blur-sm">
+        <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-3 group">
+            <Link to="/" className="flex items-center gap-2 group">
               <img 
                 src="/logo.png" 
                 alt="Muaco Cine" 
-                className="w-10 h-10 object-contain group-hover:scale-110 transition-transform"
+                className="w-9 h-9 object-contain group-hover:scale-110 transition-transform"
               />
-              <span className="text-2xl font-display text-gradient-gold hidden sm:block">MUACO CINE</span>
+              <span className="text-xl font-display text-gradient-gold hidden sm:block tracking-wider">MUACO CINE</span>
             </Link>
 
             {/* Desktop Navigation */}
