@@ -65,31 +65,11 @@ export default function TVPlayerControls({
     const isHls = streamUrl.includes('.m3u8') || streamUrl.includes('.m3u');
     const isAudio = streamUrl.endsWith('.mp3') || streamUrl.includes('.mp3?');
 
-    const PROXY_BYPASS_HOSTS = new Set([
-      // Alguns domínios falham no proxy (DNS/rota) — tocar direto no browser
-      'video.tpa.ao',
-      'live-hls-web-aje.getaj.net',
-    ]);
-
-    const isProxyBypassedHost = (hostname: string) => {
-      if (PROXY_BYPASS_HOSTS.has(hostname)) return true;
-      // Vários endpoints de TV têm DNS bloqueado no proxy, mas abrem direto no browser
-      if (hostname.endsWith('samsung.wurl.tv')) return true;
-      return false;
-    };
-
-    const proxyUrl = (rawUrl: string) =>
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hls-proxy?url=${encodeURIComponent(rawUrl)}`;
-
     const shouldUseProxy = (() => {
+      // Para HLS, usar sempre proxy para evitar CORS/bloqueios.
+      // Se o proxy falhar, fazemos fallback automático para tocar direto.
       if (!isHls) return false;
       if (streamUrl.includes('/functions/v1/hls-proxy')) return false;
-      try {
-        const host = new URL(streamUrl).hostname;
-        if (isProxyBypassedHost(host)) return false;
-      } catch {
-        // ignore
-      }
       return true;
     })();
 

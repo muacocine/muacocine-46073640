@@ -3,10 +3,11 @@ import Hls from 'hls.js';
 import Navbar from '@/components/Navbar';
 import BottomNav from '@/components/BottomNav';
 import TVPlayerControls from '@/components/TVPlayerControls';
+import MovieCard from '@/components/MovieCard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Tv, Radio, Volume2, VolumeX, Maximize, Globe, Film, Loader2, Calendar, Clock, RotateCw, Settings } from 'lucide-react';
+import { Tv, Radio, Volume2, VolumeX, Maximize, Globe, Film, Loader2, Calendar, Clock, RotateCw, Settings, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -31,37 +32,44 @@ const useElevenLabsTTS = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const speak = useCallback(async (text: string) => {
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({ text }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`TTS request failed: ${response.status}`);
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ text }),
       }
+    );
 
-      const audioBlob = await response.blob();
-      const audioUrl = URL.createObjectURL(audioBlob);
-      
-      if (audioRef.current) {
-        audioRef.current.pause();
+    if (!response.ok) {
+      throw new Error(`TTS request failed: ${response.status}`);
+    }
+
+    const audioBlob = await response.blob();
+    const audioUrl = URL.createObjectURL(audioBlob);
+
+    if (audioRef.current) {
+      audioRef.current.pause();
+      try {
         URL.revokeObjectURL(audioRef.current.src);
+      } catch {
+        // ignore
       }
+    }
 
-      const audio = new Audio(audioUrl);
-      audioRef.current = audio;
+    const audio = new Audio(audioUrl);
+    audioRef.current = audio;
+
+    try {
       await audio.play();
-    } catch (error) {
-      console.error("ElevenLabs TTS error:", error);
+      return true;
+    } catch {
+      // Autoplay geralmente é bloqueado sem gesto do utilizador
+      throw new Error('Autoplay bloqueado');
     }
   }, []);
 
@@ -474,9 +482,10 @@ export default function MuacoTV() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { speak } = useElevenLabsTTS();
-  
+
   const [selectedChannel, setSelectedChannel] = useState<TVChannel | null>(null);
   const [isMuted, setIsMuted] = useState(false);
+  const [ttsEnabled, setTtsEnabled] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState('Todos');
   const [selectedCategory, setSelectedCategory] = useState('Todos');
   const [currentMovie, setCurrentMovie] = useState<string>('');
@@ -484,6 +493,20 @@ export default function MuacoTV() {
   const [isLoading, setIsLoading] = useState(false);
   const [streamError, setStreamError] = useState(false);
   const [activeTab, setActiveTab] = useState('channels');
+
+  const [dramaMovies, setDramaMovies] = useState<
+    {
+      id: string;
+      title: string;
+      poster_url: string | null;
+      release_year: number | null;
+      rating: number | null;
+      genre: string[] | null;
+      isTV?: boolean;
+    }[]
+  >([]);
+  const [isDramaLoading, setIsDramaLoading] = useState(false);
+
   const movieIndexRef = useRef(0);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -554,7 +577,7 @@ export default function MuacoTV() {
     }
   }, [isMuted]);
 
-  // Rotação automática de filmes
+  // Rotação automática de filmes (announcer)
   useEffect(() => {
     if (!selectedChannel || selectedChannel.category !== 'Filmes') return;
 
@@ -566,11 +589,13 @@ export default function MuacoTV() {
     const interval = setInterval(() => {
       const nextIndex = (movieIndexRef.current + 1) % MOVIE_PLAYLIST.length;
       const upcomingMovie = MOVIE_PLAYLIST[nextIndex];
-      
-      if (!isMuted) {
-        speak(`Já a seguir: ${upcomingMovie}`);
+
+      if (ttsEnabled && !isMuted) {
+        speak(`Já a seguir: ${upcomingMovie}`).catch(() => {
+          // Se der erro, normalmente é autoplay bloqueado
+        });
       }
-      
+
       setTimeout(() => {
         movieIndexRef.current = nextIndex;
         setCurrentMovie(upcomingMovie);
@@ -579,9 +604,49 @@ export default function MuacoTV() {
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [selectedChannel, isMuted, speak]);
+  }, [selectedChannel, isMuted, speak, ttsEnabled]);
 
-  const filteredChannels = CHANNELS.filter(channel => {
+  // Feed real (TMDB) para o canal Muaco Drama
+  useEffect(() => {
+    const run = async () => {
+      if (selectedChannel?.id !== 'movies-drama') return;
+
+      setIsDramaLoading(true);
+      try {
+        const { movies } = await tmdbApi.getByGenre(18, 1); // 18 = Drama
+        const mapped = (movies || []).slice(0, 24).map((m: TMDBMovie) => {
+          const year = m.release_date ? Number(m.release_date.split('-')[0]) : null;
+          return {
+            id: String(m.id),
+            title: m.title || m.name || 'Sem título',
+            poster_url: getImageUrl(m.poster_path, 'w500'),
+            release_year: Number.isFinite(year) ? year : null,
+            rating: m.vote_average ? Math.round(m.vote_average * 10) / 10 : null,
+            genre: m.genre_ids ? getGenreNames(m.genre_ids) : null,
+          };
+        });
+        setDramaMovies(mapped);
+      } catch {
+        toast.error('Não foi possível carregar filmes de Drama.');
+        setDramaMovies([]);
+      } finally {
+        setIsDramaLoading(false);
+      }
+    };
+
+    run();
+  }, [selectedChannel?.id]);
+
+  const enableVoice = async () => {
+    try {
+      await speak('Som ativado.');
+      setTtsEnabled(true);
+      toast.success('Voz ativada');
+    } catch {
+      toast.error('Ative o som: toque em "Voz" e permita áudio no navegador.');
+    }
+  };
+
     if (selectedCountry !== 'Todos' && channel.country !== selectedCountry) return false;
     if (selectedCategory !== 'Todos' && channel.category !== selectedCategory) return false;
     return true;
@@ -668,14 +733,50 @@ export default function MuacoTV() {
                 </div>
               )}
 
-              {/* Movie Info for Movie Channels */}
-              {selectedChannel?.category === 'Filmes' && currentMovie && (
+              {/* Muaco Drama (TMDB) */}
+              {selectedChannel?.id === 'movies-drama' && (
                 <div className="mt-4 p-4 bg-card border border-border rounded-xl">
-                  <p className="text-muted-foreground text-sm mb-1">Agora exibindo:</p>
-                  <p className="text-foreground font-semibold text-lg">{currentMovie}</p>
-                  <p className="text-primary text-sm mt-1">
-                    Próximo: {nextMovie}
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <h3 className="font-display text-xl text-foreground">MUACO DRAMA</h3>
+                    <Button variant="outline" size="sm" onClick={enableVoice} className="gap-2">
+                      <Volume2 className="w-4 h-4" />
+                      Voz
+                    </Button>
+                  </div>
+
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Filmes de Drama reais (TMDB). Clique num cartaz para abrir e assistir.
                   </p>
+
+                  {isDramaLoading ? (
+                    <div className="mt-4 flex items-center gap-2 text-muted-foreground">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      A carregar filmes...
+                    </div>
+                  ) : (
+                    <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                      {dramaMovies.map((m, idx) => (
+                        <MovieCard key={m.id} movie={m} index={idx} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Movie Info for Movie Channels */}
+              {selectedChannel?.category === 'Filmes' && selectedChannel?.id !== 'movies-drama' && currentMovie && (
+                <div className="mt-4 p-4 bg-card border border-border rounded-xl">
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div>
+                      <p className="text-muted-foreground text-sm mb-1">Agora exibindo:</p>
+                      <p className="text-foreground font-semibold text-lg">{currentMovie}</p>
+                      <p className="text-primary text-sm mt-1">Próximo: {nextMovie}</p>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={enableVoice} className="gap-2">
+                      <Volume2 className="w-4 h-4" />
+                      Voz
+                    </Button>
+                  </div>
                 </div>
               )}
 
@@ -708,8 +809,9 @@ export default function MuacoTV() {
                             {selectedChannel.country}
                           </Badge>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-3">
-                          ⚠️ Este é um streaming ao vivo. Não é possível pausar, recuar ou avançar.
+                        <p className="text-xs text-muted-foreground mt-3 flex items-center gap-2">
+                          <AlertTriangle className="w-4 h-4" />
+                          Este é um streaming ao vivo. Não é possível pausar, recuar ou avançar.
                         </p>
                       </div>
                     </TabsContent>
