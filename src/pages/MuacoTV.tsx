@@ -10,6 +10,7 @@ import { Tv, Radio, Volume2, VolumeX, Maximize, Globe, Film, Loader2, Calendar, 
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { tmdbApi, TMDBMovie, getImageUrl, getGenreNames } from '@/lib/tmdb';
 
 // Filmes para rotação automática nos canais de filmes
 const MOVIE_PLAYLIST = [
