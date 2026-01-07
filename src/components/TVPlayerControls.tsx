@@ -62,6 +62,17 @@ export default function TVPlayerControls({
     if (!videoRef.current) return;
 
     const video = videoRef.current;
+    const isHls = streamUrl.includes('.m3u8') || streamUrl.includes('.m3u');
+    const isAudio = streamUrl.endsWith('.mp3') || streamUrl.includes('.mp3?');
+
+    const proxyUrl = (rawUrl: string) =>
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hls-proxy?url=${encodeURIComponent(rawUrl)}`;
+
+    // Para HLS, passamos sempre pelo proxy para evitar CORS/hotlink
+    const sourceUrl = isHls && !streamUrl.includes('/functions/v1/hls-proxy')
+      ? proxyUrl(streamUrl)
+      : streamUrl;
+
     setIsLoading(true);
     setHasError(false);
     onLoading?.(true);
@@ -71,7 +82,16 @@ export default function TVPlayerControls({
       hlsRef.current = null;
     }
 
-    if (Hls.isSupported()) {
+    if (isAudio) {
+      video.src = sourceUrl;
+      video.load();
+      video.play().catch(() => {});
+      setIsLoading(false);
+      onLoading?.(false);
+      return;
+    }
+
+    if (Hls.isSupported() && isHls) {
       const hls = new Hls({
         enableWorker: true,
         lowLatencyMode: true,
@@ -80,25 +100,28 @@ export default function TVPlayerControls({
       });
 
       hlsRef.current = hls;
-      hls.loadSource(streamUrl);
+      hls.loadSource(sourceUrl);
       hls.attachMedia(video);
 
-      hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
         setIsLoading(false);
         onLoading?.(false);
-        
-        // Get quality levels
-        const levels = hls.levels.map((level, index) => ({
-          height: level.height,
-          bitrate: level.bitrate,
-          level: index
-        })).sort((a, b) => b.height - a.height);
-        
+
+        const levels = hls.levels
+          .map((level, index) => ({
+            height: level.height,
+            bitrate: level.bitrate,
+            level: index,
+          }))
+          .sort((a, b) => b.height - a.height);
+
         setQualityLevels(levels);
         video.play().catch(() => {});
       });
 
       hls.on(Hls.Events.ERROR, (_, data) => {
+        console.error('[HLS]', data);
+
         if (data.fatal) {
           setHasError(true);
           setIsLoading(false);
@@ -106,29 +129,31 @@ export default function TVPlayerControls({
           onError?.();
 
           if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-            setTimeout(() => hls.startLoad(), 3000);
+            setTimeout(() => hls.startLoad(), 2000);
           }
         }
       });
-
-      hls.on(Hls.Events.LEVEL_SWITCHED, (_, data) => {
-        if (currentQuality === -1) {
-          // Update display for auto quality
-        }
-      });
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = streamUrl;
-      video.addEventListener('loadedmetadata', () => {
+    } else {
+      // Fallback: tenta tocar diretamente (Safari com HLS nativo ou MP4)
+      video.src = sourceUrl;
+      const onLoaded = () => {
         setIsLoading(false);
         onLoading?.(false);
         video.play().catch(() => {});
-      });
-      video.addEventListener('error', () => {
+      };
+      const onErr = () => {
         setHasError(true);
         setIsLoading(false);
         onLoading?.(false);
         onError?.();
-      });
+      };
+      video.addEventListener('loadedmetadata', onLoaded);
+      video.addEventListener('error', onErr);
+
+      return () => {
+        video.removeEventListener('loadedmetadata', onLoaded);
+        video.removeEventListener('error', onErr);
+      };
     }
 
     return () => {

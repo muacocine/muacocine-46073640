@@ -318,11 +318,12 @@ const CHANNELS: TVChannel[] = [
   // Internacional - Canais de Notícias
   {
     id: 'bbc-world',
-    name: 'BBC World News',
+    name: 'BBC News (HLS)',
     logo: '🇬🇧',
     country: 'Internacional',
     category: 'Notícias',
-    streamUrl: 'https://vs-cmaf-pushb-uk.live.cf.md.bbci.co.uk/x=4/i=urn:bbc:pips:service:bbc_news_channel_hd/iptv_hd_abr_v1.mpd',
+    // HLS (mais compatível do que MPD/DASH)
+    streamUrl: 'https://a.files.bbci.co.uk/media/live/manifesto/audio_video/simulcast/hls/uk/abr_hdtv/ak/bbc_news_channel_hd.m3u8',
     isLive: true,
   },
   {
