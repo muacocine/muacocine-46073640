@@ -71,6 +71,13 @@ export default function TVPlayerControls({
       'live-hls-web-aje.getaj.net',
     ]);
 
+    const isProxyBypassedHost = (hostname: string) => {
+      if (PROXY_BYPASS_HOSTS.has(hostname)) return true;
+      // Vários endpoints de TV têm DNS bloqueado no proxy, mas abrem direto no browser
+      if (hostname.endsWith('samsung.wurl.tv')) return true;
+      return false;
+    };
+
     const proxyUrl = (rawUrl: string) =>
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hls-proxy?url=${encodeURIComponent(rawUrl)}`;
 
@@ -79,7 +86,7 @@ export default function TVPlayerControls({
       if (streamUrl.includes('/functions/v1/hls-proxy')) return false;
       try {
         const host = new URL(streamUrl).hostname;
-        if (PROXY_BYPASS_HOSTS.has(host)) return false;
+        if (isProxyBypassedHost(host)) return false;
       } catch {
         // ignore
       }
