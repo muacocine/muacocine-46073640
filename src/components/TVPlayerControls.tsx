@@ -36,6 +36,9 @@ interface TVPlayerControlsProps {
   onLoading?: (loading: boolean) => void;
 }
 
+const proxyUrl = (targetUrl: string) =>
+  `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hls-proxy?url=${encodeURIComponent(targetUrl)}`;
+
 export default function TVPlayerControls({
   streamUrl,
   channelName,
