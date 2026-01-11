@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,123 +6,121 @@
 
 @layer base {
   :root {
-    /* Light Theme - White background */
-    --background: 0 0% 100%;
+    /* Light Theme */
+    --background: 0 0% 98%;
     --foreground: 0 0% 9%;
 
-    --card: 0 0% 98%;
+    --card: 0 0% 100%;
     --card-foreground: 0 0% 9%;
 
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 9%;
 
-    --primary: 0 84% 60%;
+    --primary: 145 70% 50%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 96%;
+    --secondary: 0 0% 94%;
     --secondary-foreground: 0 0% 9%;
 
-    --muted: 0 0% 96%;
+    --muted: 0 0% 92%;
     --muted-foreground: 0 0% 45%;
 
-    --accent: 45 100% 51%;
-    --accent-foreground: 0 0% 9%;
+    --accent: 145 70% 45%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
-    --ring: 0 84% 60%;
+    --border: 0 0% 88%;
+    --input: 0 0% 88%;
+    --ring: 145 70% 50%;
 
-    --radius: 0.75rem;
+    --radius: 1rem;
 
     /* Custom tokens */
-    --gold: 45 100% 51%;
-    --gold-dark: 45 100% 35%;
+    --green-primary: 145 70% 50%;
+    --green-dark: 145 70% 35%;
     --cinema-black: 0 0% 9%;
-    --cinema-gray: 0 0% 96%;
-    --cinema-light: 0 0% 90%;
-    --netflix-red: 0 84% 60%;
+    --cinema-gray: 0 0% 94%;
+    --cinema-light: 0 0% 88%;
 
     /* Gradients */
-    --gradient-gold: linear-gradient(135deg, hsl(0, 84%, 60%), hsl(45, 100%, 51%));
-    --gradient-dark: linear-gradient(180deg, hsl(0, 0%, 100%), hsl(0, 0%, 98%));
-    --gradient-card: linear-gradient(180deg, hsl(0, 0%, 98%), hsl(0, 0%, 100%));
-    --gradient-hero: linear-gradient(90deg, hsl(0, 0%, 100%) 0%, transparent 60%);
-    --gradient-hero-bottom: linear-gradient(180deg, transparent 0%, hsl(0, 0%, 100%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(145, 70%, 50%), hsl(145, 70%, 40%));
+    --gradient-card: linear-gradient(180deg, hsl(0, 0%, 100%), hsl(0, 0%, 98%));
+    --gradient-hero: linear-gradient(90deg, hsl(0, 0%, 98%) 0%, transparent 60%);
+    --gradient-hero-bottom: linear-gradient(180deg, transparent 0%, hsl(0, 0%, 98%) 100%);
 
     /* Shadows */
-    --shadow-gold: 0 0 30px hsl(0, 84%, 60%, 0.2);
+    --shadow-soft: 0 4px 20px hsl(0, 0%, 0%, 0.05);
     --shadow-card: 0 8px 32px hsl(0, 0%, 0%, 0.08);
+    --shadow-glow: 0 0 30px hsl(145, 70%, 50%, 0.2);
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 0 0% 9%;
-    --sidebar-primary: 0 84% 60%;
+    --sidebar-primary: 145 70% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 96%;
+    --sidebar-accent: 0 0% 94%;
     --sidebar-accent-foreground: 0 0% 9%;
-    --sidebar-border: 0 0% 90%;
-    --sidebar-ring: 0 84% 60%;
+    --sidebar-border: 0 0% 88%;
+    --sidebar-ring: 145 70% 50%;
   }
 
   .dark {
-    /* Dark Theme - Black background */
-    --background: 0 0% 4%;
+    /* Dark Theme - Premium Dark */
+    --background: 220 15% 8%;
     --foreground: 0 0% 98%;
 
-    --card: 0 0% 7%;
+    --card: 220 15% 12%;
     --card-foreground: 0 0% 98%;
 
-    --popover: 0 0% 7%;
+    --popover: 220 15% 12%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 0 84% 60%;
+    --primary: 145 70% 50%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 12%;
+    --secondary: 220 15% 18%;
     --secondary-foreground: 0 0% 98%;
 
-    --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 64%;
+    --muted: 220 15% 20%;
+    --muted-foreground: 0 0% 60%;
 
-    --accent: 45 100% 51%;
-    --accent-foreground: 0 0% 9%;
+    --accent: 145 70% 45%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 18%;
-    --input: 0 0% 18%;
-    --ring: 0 84% 60%;
+    --border: 220 15% 22%;
+    --input: 220 15% 22%;
+    --ring: 145 70% 50%;
 
     /* Custom tokens */
-    --gold: 45 100% 51%;
-    --gold-dark: 45 100% 35%;
-    --cinema-black: 0 0% 4%;
-    --cinema-gray: 0 0% 12%;
-    --cinema-light: 0 0% 20%;
-    --netflix-red: 0 84% 60%;
+    --green-primary: 145 70% 50%;
+    --green-dark: 145 70% 35%;
+    --cinema-black: 220 15% 8%;
+    --cinema-gray: 220 15% 15%;
+    --cinema-light: 220 15% 22%;
 
     /* Gradients */
-    --gradient-gold: linear-gradient(135deg, hsl(0, 84%, 60%), hsl(45, 100%, 51%));
-    --gradient-dark: linear-gradient(180deg, hsl(0, 0%, 4%), hsl(0, 0%, 8%));
-    --gradient-card: linear-gradient(180deg, hsl(0, 0%, 8%), hsl(0, 0%, 5%));
-    --gradient-hero: linear-gradient(90deg, hsl(0, 0%, 4%) 0%, transparent 60%);
-    --gradient-hero-bottom: linear-gradient(180deg, transparent 0%, hsl(0, 0%, 4%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(145, 70%, 50%), hsl(145, 70%, 40%));
+    --gradient-card: linear-gradient(180deg, hsl(220, 15%, 14%), hsl(220, 15%, 10%));
+    --gradient-hero: linear-gradient(90deg, hsl(220, 15%, 8%) 0%, transparent 60%);
+    --gradient-hero-bottom: linear-gradient(180deg, transparent 0%, hsl(220, 15%, 8%) 100%);
 
     /* Shadows */
-    --shadow-gold: 0 0 30px hsl(0, 84%, 60%, 0.3);
-    --shadow-card: 0 8px 32px hsl(0, 0%, 0%, 0.5);
+    --shadow-soft: 0 4px 20px hsl(0, 0%, 0%, 0.2);
+    --shadow-card: 0 8px 32px hsl(0, 0%, 0%, 0.4);
+    --shadow-glow: 0 0 30px hsl(145, 70%, 50%, 0.3);
 
-    --sidebar-background: 0 0% 7%;
+    --sidebar-background: 220 15% 12%;
     --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 0 84% 60%;
+    --sidebar-primary: 145 70% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 15%;
+    --sidebar-accent: 220 15% 18%;
     --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 0 0% 18%;
-    --sidebar-ring: 0 84% 60%;
+    --sidebar-border: 220 15% 22%;
+    --sidebar-ring: 145 70% 50%;
   }
 }
 
@@ -133,19 +131,19 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Outfit', sans-serif;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Bebas Neue', sans-serif;
-    letter-spacing: 0.05em;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
   }
 }
 
 @layer utilities {
-  .text-gradient-gold {
+  .text-gradient {
     @apply bg-clip-text text-transparent;
-    background-image: var(--gradient-gold);
+    background-image: var(--gradient-primary);
   }
 
   .bg-gradient-hero {
@@ -156,32 +154,44 @@
     background-image: var(--gradient-hero-bottom);
   }
 
-  .shadow-gold {
-    box-shadow: var(--shadow-gold);
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
   }
 
   .shadow-card {
     box-shadow: var(--shadow-card);
   }
 
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+
   .animate-fade-in {
-    animation: fadeIn 0.6s ease-out forwards;
+    animation: fadeIn 0.5s ease-out forwards;
   }
 
   .animate-slide-up {
-    animation: slideUp 0.6s ease-out forwards;
+    animation: slideUp 0.5s ease-out forwards;
   }
 
   .animate-scale-in {
     animation: scaleIn 0.3s ease-out forwards;
   }
 
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
   .glass {
     @apply bg-card/80 backdrop-blur-xl border border-border/50;
   }
 
-  .netflix-card {
-    @apply rounded-lg overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-xl;
+  .glass-strong {
+    @apply bg-card/95 backdrop-blur-2xl border border-border/30;
+  }
+
+  .card-hover {
+    @apply transition-all duration-300 hover:scale-[1.02] hover:shadow-lg;
   }
 
   .scrollbar-hide {
@@ -191,6 +201,20 @@
 
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
+  }
+
+  .line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 }
 
@@ -212,16 +236,18 @@
 @keyframes fadeIn {
   from {
     opacity: 0;
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
+    transform: translateY(0);
   }
 }
 
 @keyframes slideUp {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(30px);
   }
   to {
     opacity: 1;
@@ -237,6 +263,33 @@
   to {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 hsl(var(--primary) / 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 10px hsl(var(--primary) / 0);
   }
 }
 
@@ -259,12 +312,50 @@
   background: hsl(var(--muted-foreground));
 }
 
-/* Netflix-style transitions */
-.movie-card-hover {
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+/* Card animations */
+.movie-card {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+              box-shadow 0.3s ease,
+              border-color 0.3s ease;
 }
 
-.movie-card-hover:hover {
-  transform: scale(1.08);
+.movie-card:hover {
+  transform: translateY(-4px) scale(1.02);
   z-index: 10;
+}
+
+/* Shimmer loading effect */
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 25%,
+    hsl(var(--muted-foreground) / 0.1) 50%,
+    hsl(var(--muted)) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Category pill */
+.category-pill {
+  @apply px-4 py-2 rounded-full text-sm font-medium transition-all duration-200;
+  @apply bg-secondary text-secondary-foreground;
+}
+
+.category-pill:hover,
+.category-pill.active {
+  @apply bg-primary text-primary-foreground shadow-glow;
+}
+
+/* Bottom nav enhancement */
+.bottom-nav-item {
+  @apply flex flex-col items-center justify-center gap-0.5 flex-1 py-2 transition-all duration-200;
+}
+
+.bottom-nav-item.active {
+  @apply text-primary;
+}
+
+.bottom-nav-item.active .nav-icon {
+  @apply bg-primary/20 scale-110;
 }
