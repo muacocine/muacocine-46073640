@@ -647,6 +647,7 @@ export default function MuacoTV() {
     }
   };
 
+  const filteredChannels = CHANNELS.filter((channel) => {
     if (selectedCountry !== 'Todos' && channel.country !== selectedCountry) return false;
     if (selectedCategory !== 'Todos' && channel.category !== selectedCategory) return false;
     return true;
