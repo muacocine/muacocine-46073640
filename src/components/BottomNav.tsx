@@ -1,12 +1,12 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Film, Tv, Heart, User } from 'lucide-react';
+import { Home, Film, Tv, Download, User } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
 const navItems = [
   { path: '/', icon: Home, label: 'Início' },
   { path: '/categories', icon: Film, label: 'Filmes' },
   { path: '/muaco-tv', icon: Tv, label: 'TV' },
-  { path: '/favorites', icon: Heart, label: 'Lista' },
+  { path: '/downloads', icon: Download, label: 'Downloads' },
   { path: '/profile', icon: User, label: 'Perfil' },
 ];
 
@@ -29,7 +29,7 @@ export default function BottomNav() {
             const Icon = item.icon;
             
             // Auth redirect for protected routes
-            const targetPath = (item.path === '/favorites' || item.path === '/profile') && !user 
+            const targetPath = (item.path === '/downloads' || item.path === '/profile') && !user 
               ? '/auth' 
               : item.path;
             
