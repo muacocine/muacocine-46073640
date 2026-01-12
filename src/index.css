@@ -347,15 +347,30 @@
   @apply bg-primary text-primary-foreground shadow-glow;
 }
 
-/* Bottom nav enhancement */
-.bottom-nav-item {
-  @apply flex flex-col items-center justify-center gap-0.5 flex-1 py-2 transition-all duration-200;
+/* Flutter-style bottom nav */
+.flutter-nav-item {
+  @apply flex-1 flex items-center justify-center;
 }
 
-.bottom-nav-item.active {
-  @apply text-primary;
+.flutter-nav-item:active {
+  transform: scale(0.95);
 }
 
-.bottom-nav-item.active .nav-icon {
-  @apply bg-primary/20 scale-110;
+/* Safe area for notch devices */
+.safe-area-bottom {
+  padding-bottom: max(env(safe-area-inset-bottom, 8px), 8px);
+}
+
+/* Download progress animation */
+@keyframes download-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.download-pulse {
+  animation: download-pulse 1.5s ease-in-out infinite;
 }
