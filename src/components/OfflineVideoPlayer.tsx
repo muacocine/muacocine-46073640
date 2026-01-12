@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { 
   Play, 
   Pause, 
@@ -9,7 +9,8 @@ import {
   SkipBack, 
   SkipForward,
   Settings,
-  RotateCw
+  RotateCw,
+  WifiOff
 } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
@@ -22,16 +23,17 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { saveWatchProgress, getProgressForMedia } from '@/hooks/useWatchProgress';
+import { useWatchProgress } from '@/hooks/useWatchProgress';
 
-interface VideoPlayerProps {
+interface OfflineVideoPlayerProps {
   videoUrl: string | null;
   posterUrl: string | null;
   title: string;
-  mediaId?: number;
-  mediaType?: 'movie' | 'tv';
+  mediaId: number;
+  mediaType: 'movie' | 'tv';
   season?: number;
   episode?: number;
+  isOffline?: boolean;
 }
 
 const QUALITY_OPTIONS = [
@@ -44,15 +46,16 @@ const QUALITY_OPTIONS = [
   { label: '360p', value: '360' },
 ];
 
-export default function VideoPlayer({ 
+export default function OfflineVideoPlayer({ 
   videoUrl, 
   posterUrl, 
   title,
   mediaId,
   mediaType,
   season,
-  episode
-}: VideoPlayerProps) {
+  episode,
+  isOffline = false
+}: OfflineVideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -68,57 +71,41 @@ export default function VideoPlayer({
   const [selectedQuality, setSelectedQuality] = useState('auto');
   const [hasResumed, setHasResumed] = useState(false);
 
+  const { resumeTime, updateProgress } = useWatchProgress(
+    mediaId,
+    mediaType,
+    season,
+    episode
+  );
+
   // Demo video if no URL provided
   const demoVideo = "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
   const src = videoUrl || demoVideo;
 
-  // Get resume time
-  const resumeTime = mediaId && mediaType 
-    ? getProgressForMedia(mediaId, mediaType, season, episode)?.currentTime || 0 
-    : 0;
-
   // Resume from last position
   useEffect(() => {
-    if (videoRef.current && resumeTime > 0 && !hasResumed && mediaId) {
+    if (videoRef.current && resumeTime > 0 && !hasResumed) {
       videoRef.current.currentTime = resumeTime;
       setCurrentTime(resumeTime);
       setHasResumed(true);
     }
-  }, [resumeTime, hasResumed, mediaId]);
+  }, [resumeTime, hasResumed]);
 
   // Save progress periodically
   useEffect(() => {
-    if (!mediaId || !mediaType) return;
-
     if (isPlaying) {
       progressIntervalRef.current = setInterval(() => {
         if (videoRef.current) {
-          saveWatchProgress({
-            mediaId,
-            mediaType,
-            currentTime: videoRef.current.currentTime,
-            duration: videoRef.current.duration,
-            season,
-            episode,
-            updatedAt: new Date().toISOString(),
-          });
+          updateProgress(videoRef.current.currentTime, videoRef.current.duration);
         }
-      }, 5000);
+      }, 5000); // Save every 5 seconds
     } else {
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
       }
       // Save on pause
       if (videoRef.current && duration > 0) {
-        saveWatchProgress({
-          mediaId,
-          mediaType,
-          currentTime: videoRef.current.currentTime,
-          duration: videoRef.current.duration,
-          season,
-          episode,
-          updatedAt: new Date().toISOString(),
-        });
+        updateProgress(videoRef.current.currentTime, videoRef.current.duration);
       }
     }
 
@@ -127,7 +114,7 @@ export default function VideoPlayer({
         clearInterval(progressIntervalRef.current);
       }
     };
-  }, [isPlaying, mediaId, mediaType, season, episode, duration]);
+  }, [isPlaying, updateProgress, duration]);
 
   useEffect(() => {
     let timeout: NodeJS.Timeout;
@@ -150,18 +137,6 @@ export default function VideoPlayer({
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
-
-  // Resume on metadata load
-  const handleLoadedMetadata = () => {
-    if (!videoRef.current) return;
-    setDuration(videoRef.current.duration);
-    
-    if (resumeTime > 0 && !hasResumed && mediaId) {
-      videoRef.current.currentTime = resumeTime;
-      setCurrentTime(resumeTime);
-      setHasResumed(true);
-    }
-  };
 
   const togglePlay = () => {
     if (!videoRef.current) return;
@@ -191,6 +166,18 @@ export default function VideoPlayer({
   const handleTimeUpdate = () => {
     if (!videoRef.current) return;
     setCurrentTime(videoRef.current.currentTime);
+  };
+
+  const handleLoadedMetadata = () => {
+    if (!videoRef.current) return;
+    setDuration(videoRef.current.duration);
+    
+    // Resume from last position after metadata loaded
+    if (resumeTime > 0 && !hasResumed) {
+      videoRef.current.currentTime = resumeTime;
+      setCurrentTime(resumeTime);
+      setHasResumed(true);
+    }
   };
 
   const handleSeek = (value: number[]) => {
@@ -274,6 +261,14 @@ export default function VideoPlayer({
         onClick={togglePlay}
         playsInline
       />
+
+      {/* Offline indicator */}
+      {isOffline && (
+        <div className="absolute top-4 left-4 flex items-center gap-2 bg-orange-500/90 text-white px-3 py-1.5 rounded-full text-xs font-medium">
+          <WifiOff className="w-3 h-3" />
+          Modo Offline
+        </div>
+      )}
 
       {/* Play button overlay when paused */}
       {!isPlaying && (
